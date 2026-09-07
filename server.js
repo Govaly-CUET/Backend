@@ -1,9 +1,17 @@
 require("dotenv").config();
 
 const express = require("express");
+const dns = require("dns");
 const mongoose = require("mongoose");
 
 const app = express();
+
+dns.setServers(
+    (process.env.DNS_SERVERS || "8.8.8.8,1.1.1.1")
+        .split(",")
+        .map((server) => server.trim())
+        .filter(Boolean)
+);
 
 app.use(express.json());
 
