@@ -1,25 +1,39 @@
-require("dotenv").config();
+const express = require('express');
+const cors = require('cors');
+const dotenv = require('dotenv');
 
-const express = require("express");
-const mongoose = require("mongoose");
+// 1. Load Environment Variables (সবকিছুর আগে)
+const envResult = dotenv.config();
+console.log("Dotenv Parsed Keys:", envResult.parsed);
 
+// 2. Database Connection & Routes Import
+const connectDB = require('./config/db');
+const authRoutes = require('./routes/authRoutes');
+
+// 3. Connect to MongoDB Atlas
+connectDB();
+
+// 4. Initialize Express App
 const app = express();
 
+// 5. Global Middlewares
+app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => {
-        console.log("MongoDB connected successfully!");
-    })
-    .catch((error) => {
-        console.log("MongoDB connection failed:");
-        console.log(error.message);
-    });
-
-app.get("/", (req, res) => {
-    res.send("Backend is running!");
+// 6. Health Check Route
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Govaly Backend API is running successfully'
+  });
 });
 
-app.listen(5000, () => {
-    console.log("Server running on port 5000");
+// 7. API Routes Mapping
+app.use('/api/v1/auth', authRoutes);
+
+// 8. Server Start
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running in development mode on port ${PORT}`);
 });
