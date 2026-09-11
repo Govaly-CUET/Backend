@@ -8,7 +8,8 @@ console.log("Dotenv Parsed Keys:", envResult.parsed);
 
 // 2. Database Connection & Routes Import
 const connectDB = require('./config/db');
-const authRoutes = require('./routes/authRoutes');
+const sellerRoutes=require('./routes/sellerRoutes'); // sellerRouter ke  niye aslam
+const adminRoutes=require('./routes/adminRoutes');  // admin routes ke niye aslam
 
 // 3. Connect to MongoDB Atlas
 connectDB();
@@ -29,8 +30,11 @@ app.get('/', (req, res) => {
   });
 });
 
-// 7. API Routes Mapping
-app.use('/api/v1/auth', authRoutes);
+
+// API for Register 
+app.use('/api/v1/seller',sellerRoutes);
+// Api for vericication for seller  in admin page 
+app.use('/api/v1/admin',adminRoutes);
 
 // 8. Server Start
 const PORT = process.env.PORT || 5000;
