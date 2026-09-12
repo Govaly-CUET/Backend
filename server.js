@@ -3,6 +3,9 @@ require("dotenv").config();
 const express = require("express");
 const dns = require("dns");
 const mongoose = require("mongoose");
+const cors = require("cors");
+const productRoutes = require('./routes/productRoutes');
+const sellerRoutes = require('./routes/sellerRoutes');
 
 const app = express();
 
@@ -13,7 +16,10 @@ dns.setServers(
         .filter(Boolean)
 );
 
+app.use(cors());
 app.use(express.json());
+app.use('/seller', productRoutes);
+app.use('/api/v1/seller', sellerRoutes);
 
 mongoose.connect(process.env.MONGODB_URI)
     .then(() => {
