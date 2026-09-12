@@ -3,11 +3,22 @@ const streamifier = require('streamifier');
 
 const streamUpload = (buffer, folder, resourceType) => {
   return new Promise((resolve, reject) => {
+    console.log('Upload debug: sending file to Cloudinary:', { folder, resourceType, bufferLength: buffer.length });
+
     const stream = cloudinary.uploader.upload_stream(
       { folder, resource_type: resourceType },
       (error, result) => {
-        if (result) resolve(result);
-        else reject(error);
+        if (result) {
+          console.log('Upload debug: Cloudinary upload success:', {
+            secure_url: result.secure_url,
+            public_id: result.public_id,
+            resource_type: result.resource_type,
+          });
+          resolve(result);
+        } else {
+          console.log('Upload debug: Cloudinary upload error:', error);
+          reject(error);
+        }
       }
     );
     streamifier.createReadStream(buffer).pipe(stream);
@@ -16,6 +27,8 @@ const streamUpload = (buffer, folder, resourceType) => {
 
 const uploadToCloudinary = async (file, folder) => {
   const resourceType = file.mimetype === 'application/pdf' ? 'raw' : 'image';
+  console.log('Upload debug: detected resourceType:', resourceType, 'for mimetype:', file.mimetype);
+
   const result = await streamUpload(file.buffer, folder, resourceType);
 
   return {
