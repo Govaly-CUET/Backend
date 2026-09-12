@@ -8,6 +8,10 @@ const adminRoutes = require('./routes/adminRoutes');
 const sellerRoutes = require('./routes/sellerRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 
+const adminCategoryRoutes = require(
+  "./routes/adminCategoryRoutes"
+);
+
 const app = express();
 
 connectDB();
@@ -27,6 +31,8 @@ app.get('/', (req, res) => {
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/seller', sellerRoutes);
 app.use('/api/v1/upload', uploadRoutes);
+
+app.use("/api/v1/admin/categories", adminCategoryRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
