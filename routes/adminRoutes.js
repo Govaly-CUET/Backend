@@ -4,6 +4,10 @@ const router = express.Router();
 const { loginAdmin, getMe } = require('../controllers/adminAuthController');
 const { protectAdmin } = require('../middleware/authMiddleware');
 const {
+  getProfile,
+  updateProfile,
+} = require('../controllers/adminProfileController');
+const {
   getPendingSellers,
   verifySeller,
 } = require('../controllers/adminSellerController');
@@ -15,7 +19,13 @@ router.post('/auth/login', loginAdmin);
 router.use(protectAdmin);
 
 router.get('/auth/me', getMe);
+
+router.get('/profile', getProfile);
+
+router.patch('/profile', updateProfile);
+
 router.get('/sellers/verification', getPendingSellers);
+
 router.patch('/sellers/:id/verification', verifySeller);
 
 module.exports = router;
