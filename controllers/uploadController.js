@@ -18,19 +18,23 @@ const uploadFile = async (req, res) => {
       data,
     });
   } catch (error) {
-    const statusCode = Number.isInteger(error.http_code)
-      ? error.http_code
-      : 500;
-
-    const message = statusCode === 403
-      ? 'Cloudinary rejected the upload. Check that this API key has upload permission and that the Cloudinary account is active.'
-      : error.message || 'Upload failed.';
-
-    res.status(statusCode >= 400 && statusCode < 600 ? statusCode : 500).json({
-      success: false,
-      message,
-    });
+    handleCloudinaryUploadError(error, res);
   }
+};
+
+const handleCloudinaryUploadError = (error, res) => {
+  const statusCode = Number.isInteger(error.http_code)
+    ? error.http_code
+    : 500;
+
+  const message = statusCode === 403
+    ? 'Cloudinary rejected the upload. Check that this API key has upload permission and that the Cloudinary account is active.'
+    : error.message || 'Upload failed.';
+
+  res.status(statusCode >= 400 && statusCode < 600 ? statusCode : 500).json({
+    success: false,
+    message,
+  });
 };
 
 module.exports = { uploadFile };
