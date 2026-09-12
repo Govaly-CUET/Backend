@@ -11,6 +11,7 @@ const {
   getPendingSellers,
   verifySeller,
 } = require('../controllers/adminSellerController');
+const adminCustomerRoutes = require('./adminCustomerRoutes');
 
 // Public
 router.post('/auth/login', loginAdmin);
@@ -27,5 +28,7 @@ router.patch('/profile', updateProfile);
 router.get('/sellers/verification', getPendingSellers);
 
 router.patch('/sellers/:id/verification', verifySeller);
+
+router.use('/customers', adminCustomerRoutes);
 
 module.exports = router;
