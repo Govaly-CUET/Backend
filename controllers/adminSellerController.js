@@ -1,4 +1,23 @@
-const { getPendingSellers, updateSellerStatus } = require('../services/adminSellerService');
+const { getAllSellers, getPendingSellers, updateSellerStatus } = require('../services/adminSellerService');
+
+// @desc    Get all sellers (pending, approved, suspended)
+// @route   GET /api/v1/admin/sellers/verification
+// @access  Private (Admin)
+const getAllSellersHandler = async (req, res) => {
+  try {
+    const sellers = await getAllSellers();
+
+    res.status(200).json({
+      success: true,
+      count: sellers.length,
+      data: sellers,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
 
 // @desc    Get list of sellers pending approval
 // @route   GET /api/v1/admin/sellers/verification
@@ -46,6 +65,7 @@ const verifySeller = async (req, res) => {
 };
 
 module.exports = {
-  getPendingSellers: getPendingSellersHandler,
+  getPendingSellers: getPendingSellersHandler, 
+  getAllSellersHandler,
   verifySeller,
 };

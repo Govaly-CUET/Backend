@@ -1,5 +1,9 @@
 const Seller = require('../models/sellerModel');
 
+const getAllSellers = async () => {
+  return Seller.find({}).select('-password').sort({ createdAt: -1 });
+};
+
 const getPendingSellers = async () => {
   return Seller.find({ status: 'pending' }).select('-password');
 };
@@ -28,4 +32,4 @@ const updateSellerStatus = async (id, status, commission) => {
   return result;
 };
 
-module.exports = { getPendingSellers, updateSellerStatus };
+module.exports = { getAllSellers, getPendingSellers, updateSellerStatus };
