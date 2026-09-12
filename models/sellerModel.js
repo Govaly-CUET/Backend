@@ -43,24 +43,32 @@ const sellerSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['pending', 'active', 'suspended'],
-      default: 'pending', // Defaults to pending for admin approval
+      enum: ['pending', 'approved', 'suspended'],
+      default: 'pending',
     },
     commission: {
       type: Number,
-      default: 0, // Platform cut percentage per order
+      default: 0,
     },
     balance: {
       type: Number,
-      default: 0, // Cached wallet balance updated on delivery
+      default: 0,
     },
     ratings: {
       type: Number,
-      default: 0, // Seller's average rating
+      default: 0,
+    },
+    nidDocument: {
+      type: String,
+      default: null,
+    },
+    tradeLicenseDocument: {
+      type: String,
+      default: null,
     },
   },
   {
-    timestamps: true, // Auto-generates createdAt and updatedAt
+    timestamps: true,
   }
 );
 

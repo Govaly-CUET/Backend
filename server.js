@@ -1,27 +1,34 @@
-require("dotenv").config();
+require('dotenv').config();
 
-const express = require("express");
-const mongoose = require("mongoose");
+const express = require('express');
+const cors = require('cors');
+const connectDB = require('./config/db');
+
+const adminRoutes = require('./routes/adminRoutes');
+const sellerRoutes = require('./routes/sellerRoutes');
+const uploadRoutes = require('./routes/uploadRoutes');
 
 const app = express();
 
-// 5. Global Middlewares
-app.use(cors());
+connectDB();
+
+app.use(
+  cors({
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    credentials: true,
+  })
+);
 app.use(express.json());
 
-mongoose.connect(process.env.MONGODB_URI)
-    .then(() => {
-        console.log("MongoDB connected successfully!");
-    })
-    .catch((error) => {
-        console.log("MongoDB connection failed:");
-        console.log(error.message);
-    });
-
-app.get("/", (req, res) => {
-    res.send("Backend is running!");
+app.get('/', (req, res) => {
+  res.send('Backend is running!');
 });
 
-app.listen(5000, () => {
-    console.log("Server running on port 5000");
+app.use('/api/v1/admin', adminRoutes);
+app.use('/api/v1/seller', sellerRoutes);
+app.use('/api/v1/upload', uploadRoutes);
+
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });
