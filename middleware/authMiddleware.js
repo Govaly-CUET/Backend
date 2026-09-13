@@ -51,6 +51,13 @@ const protectSeller = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Seller no longer exists' });
     }
 
+    if (seller.status !== 'active') {
+      return res.status(403).json({
+        success: false,
+        message: 'Account not active. Cannot perform this action.',
+      });
+    }
+
     req.seller = seller;
     next();
   } catch (error) {
