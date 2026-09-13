@@ -1,6 +1,8 @@
 const express = require('express');
 const router = express.Router();
+
 const { registerSeller, loginSeller } = require('../controllers/sellerAuthController');
+const { submitVerificationDocuments } = require('../controllers/sellerDocumentController');
 const { protectSeller } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
 
@@ -13,9 +15,9 @@ router.post(
   ]),
   registerSeller
 );
-// const { uploadFile } = require('../controllers/uploadController');
-
 router.post('/auth/login', loginSeller);
-// router.post('/upload', protectSeller, upload.single('file'), uploadFile);
+
+// Private (Seller)
+router.post('/verification/documents', protectSeller, submitVerificationDocuments);
 
 module.exports = router;
