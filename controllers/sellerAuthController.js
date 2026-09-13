@@ -1,6 +1,7 @@
 const { registerSeller, authenticateSeller } = require('../services/sellerAuthService');
+const { uploadToCloudinary } = require('../services/uploadService');
 
-// @desc    Register a new seller (Pending Admin Approval)
+// @desc    Register a new seller with NID + Trade License in one request
 // @route   POST /api/v1/seller/auth/register
 // @access  Public
 const registerSellerHandler = async (req, res) => {
@@ -11,7 +12,32 @@ const registerSellerHandler = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please fill in all required fields.' });
     }
 
-    const seller = await registerSeller({ shopName, shopSlug, ownerName, email, password, phone, address });
+    const nidFile = req.files?.nid?.[0];
+    const tradeLicenseFile = req.files?.tradeLicense?.[0];
+
+    if (!nidFile || !tradeLicenseFile) {
+      return res.status(400).json({
+        success: false,
+        message: 'Both NID and Trade License documents are required to register.',
+      });
+    }
+
+    const [nidUpload, tradeLicenseUpload] = await Promise.all([
+      uploadToCloudinary(nidFile, 'govaly/sellers/nid'),
+      uploadToCloudinary(tradeLicenseFile, 'govaly/sellers/trade-license'),
+    ]);
+
+    const seller = await registerSeller({
+      shopName,
+      shopSlug,
+      ownerName,
+      email,
+      password,
+      phone,
+      address,
+      nidDocument: nidUpload.url,
+      tradeLicenseDocument: tradeLicenseUpload.url,
+    });
 
     res.status(201).json({
       success: true,
@@ -23,6 +49,8 @@ const registerSellerHandler = async (req, res) => {
         ownerName: seller.ownerName,
         email: seller.email,
         status: seller.status,
+        nidDocument: seller.nidDocument,
+        tradeLicenseDocument: seller.tradeLicenseDocument,
       },
     });
   } catch (error) {

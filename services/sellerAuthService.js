@@ -2,7 +2,10 @@ const Seller = require('../models/sellerModel');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
-const registerSeller = async ({ shopName, shopSlug, ownerName, email, password, phone, address }) => {
+const registerSeller = async ({
+  shopName, shopSlug, ownerName, email, password, phone, address,
+  nidDocument, tradeLicenseDocument,
+}) => {
   const existingSeller = await Seller.findOne({ $or: [{ email }, { shopSlug }] });
   if (existingSeller) {
     throw { status: 400, message: 'Seller with this email or shop URL slug already exists.' };
@@ -20,6 +23,8 @@ const registerSeller = async ({ shopName, shopSlug, ownerName, email, password, 
     phone,
     address,
     status: 'pending',
+    nidDocument,
+    tradeLicenseDocument,
   });
 
   return seller;
