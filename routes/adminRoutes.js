@@ -1,16 +1,27 @@
 const express = require('express');
+
 const router = express.Router();
 
 const { loginAdmin, getMe } = require('../controllers/adminAuthController');
+
 const { protectAdmin } = require('../middleware/authMiddleware');
+
 const {
   getProfile,
-  updateProfile,
+  updateProfile
 } = require('../controllers/adminProfileController');
+
 const {
   getPendingSellers,
-  verifySeller,
+  verifySeller
 } = require('../controllers/adminSellerController');
+
+const { 
+  getSellersCommission, 
+  updateCommission 
+} = require('../controllers/adminCommissionController');
+
+
 
 // Public
 router.post('/auth/login', loginAdmin);
@@ -27,5 +38,9 @@ router.patch('/profile', updateProfile);
 router.get('/sellers/verification', getPendingSellers);
 
 router.patch('/sellers/:id/verification', verifySeller);
+
+router.get('/sellers/commission', getSellersCommission);
+
+router.patch('/sellers/:id/commission', updateCommission);
 
 module.exports = router;
