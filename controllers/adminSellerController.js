@@ -1,12 +1,30 @@
-const Seller = require('../models/sellerModel');
+const { getAllSellers, getPendingSellers, updateSellerStatus } = require('../services/adminSellerService');
 
-// @desc    Get list of sellers pending verification
+// @desc    Get all sellers (pending, approved, suspended)
 // @route   GET /api/v1/admin/sellers/verification
 // @access  Private (Admin)
-const getPendingSellers = async (req, res) => {
+const getAllSellersHandler = async (req, res) => {
   try {
-    // Fetch sellers with status 'pending'
-    const pendingSellers = await Seller.find({ status: 'pending' }).select('-password');
+    const sellers = await getAllSellers();
+
+    res.status(200).json({
+      success: true,
+      count: sellers.length,
+      data: sellers,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+
+// @desc    Get list of sellers pending approval
+// @route   GET /api/v1/admin/sellers/verification
+// @access  Private (Admin)
+const getPendingSellersHandler = async (req, res) => {
+  try {
+    const pendingSellers = await getPendingSellers();
 
     res.status(200).json({
       success: true,
@@ -18,35 +36,22 @@ const getPendingSellers = async (req, res) => {
   }
 };
 
-// @desc    Approve/Reject seller verification status
+// @desc    Approve/Suspend a seller after checking NID + Trade License
 // @route   PATCH /api/v1/admin/sellers/:id/verification
 // @access  Private (Admin)
 const verifySeller = async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, commission } = req.body; // status can be 'active' or 'suspended'
+    const { status, commission } = req.body;
 
-    // Validate status value
-    if (!['active', 'suspended'].includes(status)) {
+    if (!['approved', 'suspended'].includes(status)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid status. Status must be "active" or "suspended".',
+        message: 'Invalid status. Status must be "approved" or "suspended".',
       });
     }
 
-    const updateData = { status };
-    if (commission !== undefined) {
-      updateData.commission = commission;
-    }
-
-    const seller = await Seller.findByIdAndUpdate(id, updateData, {
-      new: true,
-      runValidators: true,
-    }).select('-password');
-
-    if (!seller) {
-      return res.status(404).json({ success: false, message: 'Seller not found.' });
-    }
+    const seller = await updateSellerStatus(id, status, commission);
 
     res.status(200).json({
       success: true,
@@ -54,11 +59,13 @@ const verifySeller = async (req, res) => {
       data: seller,
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    const httpStatus = error.status || 500;
+    res.status(httpStatus).json({ success: false, message: error.message });
   }
 };
 
 module.exports = {
-  getPendingSellers,
+  getPendingSellers: getPendingSellersHandler, 
+  getAllSellersHandler,
   verifySeller,
 };
