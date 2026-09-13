@@ -7,6 +7,11 @@ const connectDB = require('./config/db');
 const adminRoutes = require('./routes/adminRoutes');
 const sellerRoutes = require('./routes/sellerRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const customerRoutes = require('./routes/customerRoutes');
+
+const adminCategoryRoutes = require(
+  "./routes/adminCategoryRoutes"
+);
 
 const app = express();
 
@@ -27,6 +32,9 @@ app.get('/', (req, res) => {
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/seller', sellerRoutes);
 app.use('/api/v1/upload', uploadRoutes);
+app.use('/api/v1/customer', customerRoutes);
+
+app.use("/api/v1/admin/categories", adminCategoryRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

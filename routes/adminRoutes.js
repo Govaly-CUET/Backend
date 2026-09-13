@@ -16,6 +16,9 @@ const {
   verifySeller
 } = require('../controllers/adminSellerController');
 
+
+const adminCustomerRoutes = require('./adminCustomerRoutes');
+
 const { 
   getSellersCommission, 
   updateCommission 
@@ -38,6 +41,8 @@ router.patch('/profile', updateProfile);
 router.get('/sellers/verification', getPendingSellers);
 
 router.patch('/sellers/:id/verification', verifySeller);
+
+router.use('/customers', adminCustomerRoutes);
 
 router.get('/sellers/commission', getSellersCommission);
 
