@@ -1,38 +1,61 @@
-const { getAllSellers, getPendingSellers, updateSellerStatus } = require('../services/adminSellerService');
+const { getAllSellers, getSellersByStatus, updateSellerStatus } = require('../services/adminSellerService');
 
-// @desc    Get all sellers (pending, approved, suspended)
-// @route   GET /api/v1/admin/sellers/verification
+const respondWithSellers = (res, sellers) => {
+  res.status(200).json({
+    success: true,
+    count: sellers.length,
+    data: sellers,
+  });
+};
+
+// @desc    Get every seller, regardless of status
+// @route   GET /api/v1/admin/sellers/verification/all
 // @access  Private (Admin)
-const getAllSellersHandler = async (req, res) => {
+const getAll = async (req, res) => {
   try {
     const sellers = await getAllSellers();
-
-    res.status(200).json({
-      success: true,
-      count: sellers.length,
-      data: sellers,
-    });
+    respondWithSellers(res, sellers);
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
   }
 };
 
-
-
-// @desc    Get list of sellers pending approval
-// @route   GET /api/v1/admin/sellers/verification
+// @desc    Get sellers with status = pending
+// @route   GET /api/v1/admin/sellers/verification/pending
 // @access  Private (Admin)
-const getPendingSellersHandler = async (req, res) => {
+const getPending = async (req, res) => {
   try {
-    const pendingSellers = await getPendingSellers();
-
-    res.status(200).json({
-      success: true,
-      count: pendingSellers.length,
-      data: pendingSellers,
-    });
+    const sellers = await getSellersByStatus('pending');
+    respondWithSellers(res, sellers);
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    const status = error.status || 500;
+    res.status(status).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get sellers with status = approved
+// @route   GET /api/v1/admin/sellers/verification/approved
+// @access  Private (Admin)
+const getApproved = async (req, res) => {
+  try {
+    const sellers = await getSellersByStatus('approved');
+    respondWithSellers(res, sellers);
+  } catch (error) {
+    const status = error.status || 500;
+    res.status(status).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Get sellers with status = suspended
+// @route   GET /api/v1/admin/sellers/verification/suspended
+// @access  Private (Admin)
+const getSuspended = async (req, res) => {
+  try {
+    const sellers = await getSellersByStatus('suspended');
+    respondWithSellers(res, sellers);
+  } catch (error) {
+    const status = error.status || 500;
+    res.status(status).json({ success: false, message: error.message });
   }
 };
 
@@ -64,8 +87,4 @@ const verifySeller = async (req, res) => {
   }
 };
 
-module.exports = {
-  getPendingSellers: getPendingSellersHandler, 
-  getAllSellersHandler,
-  verifySeller,
-};
+module.exports = { getAll, getPending, getApproved, getSuspended, verifySeller };
