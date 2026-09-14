@@ -23,9 +23,34 @@ dns.setServers(
 
 connectDB();
 
+/*
+ * Two separate Vite dev apps (Admin_repo, Seller_repo) hit this
+ * backend, and Vite bumps to the next free port whenever one is
+ * already taken (5173, 5174, 5175, ...) — a single hardcoded origin
+ * silently breaks whichever app didn't land on it. CLIENT_URL can
+ * still override/extend this with a comma-separated list in
+ * production; the localhost range below only matters in dev.
+ */
+const configuredOrigins = (process.env.CLIENT_URL || '')
+  .split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true; // same-origin / curl / server-to-server
+  if (configuredOrigins.includes(origin)) return true;
+  return /^http:\/\/localhost:5\d{3}$/.test(origin);
+};
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error('Not allowed by CORS'));
+      }
+    },
     credentials: true,
   })
 );

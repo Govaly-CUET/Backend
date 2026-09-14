@@ -17,6 +17,12 @@ const {
   getSellersCommission,
   updateCommission,
 } = require('../controllers/adminCommissionController');
+const {
+  getMedia,
+  updateMedia,
+  replaceMedia,
+} = require('../controllers/adminMediaController');
+const upload = require('../middleware/uploadMiddleware');
 
 // Public
 router.post('/auth/login', loginAdmin);
@@ -39,5 +45,9 @@ router.use('/customers', adminCustomerRoutes);
 
 router.get('/sellers/commission', getSellersCommission);
 router.patch('/sellers/:id/commission', updateCommission);
+
+router.get('/media', getMedia);
+router.patch('/media/:id', updateMedia);
+router.patch('/media/:id/file', upload.single('file'), replaceMedia);
 
 module.exports = router;

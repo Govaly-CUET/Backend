@@ -3,11 +3,11 @@ const router = express.Router();
 
 const upload = require('../middleware/uploadMiddleware');
 const { uploadFile } = require('../controllers/uploadController');
-const { protectAdmin } = require('../middleware/authMiddleware');
+const { protectAdminOrSeller } = require('../middleware/authMiddleware');
 
 router.post(
   '/',
-  protectAdmin,
+  protectAdminOrSeller,
   upload.single('file'),
   uploadFile
 );

@@ -1,4 +1,5 @@
 const { uploadToCloudinary } = require('../services/uploadService');
+const Media = require('../models/mediaModel');
 
 // @desc    Upload a single file to Cloudinary
 // @route   POST /api/v1/upload
@@ -31,10 +32,41 @@ const uploadFile = async (req, res) => {
 
     console.log('Upload debug: Cloudinary response:', data);
 
+    /*
+     * Record who actually uploaded this — from the authenticated
+     * request (req.admin / req.seller), never from anything the
+     * client sent. protectAdminOrSeller (see routes/uploadRoutes.js)
+     * guarantees exactly one of req.admin / req.seller is set.
+     */
+    let mediaDoc = null;
+
+    try {
+      mediaDoc = await Media.create({
+        url: data.url,
+        publicId: data.publicId,
+        fileType: data.fileType,
+        size: data.size,
+        width: data.width,
+        height: data.height,
+        folder,
+        uploadedByType: req.admin ? 'admin' : 'seller',
+        uploadedById: req.admin ? req.admin._id : req.seller._id,
+        uploadedByModel: req.admin ? 'Admin' : 'Seller',
+      });
+    } catch (mediaError) {
+      // The file is already on Cloudinary and the caller already has
+      // its URL — don't fail the whole request over a bookkeeping
+      // write. Just log it so it's visible.
+      console.error('Media record save failed:', mediaError.message);
+    }
+
     res.status(200).json({
       success: true,
       message: 'File uploaded successfully.',
-      data,
+      data: {
+        ...data,
+        mediaId: mediaDoc?._id || null,
+      },
     });
   } catch (error) {
     handleCloudinaryUploadError(error, res);

@@ -36,6 +36,10 @@ const uploadToCloudinary = async (file, folder) => {
     publicId: result.public_id,
     fileType: file.mimetype,
     size: file.size,
+    // Cloudinary only reports pixel dimensions for actual images —
+    // absent (and null in the Media doc) for PDFs and other raw files.
+    width: result.width || null,
+    height: result.height || null,
   };
 };
 
