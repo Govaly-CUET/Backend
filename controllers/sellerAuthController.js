@@ -1,7 +1,9 @@
-const { registerSeller, authenticateSeller } = require('../services/sellerAuthService');
-const { uploadToCloudinary } = require('../services/uploadService');
+const { registerSeller, authenticateSeller, issueSellerToken } = require('../services/sellerAuthService');
 
-// @desc    Register a new seller with NID + Trade License in one request
+// @desc    Register a new seller account (no documents required here —
+//          those are uploaded afterward via POST /api/v1/upload, then
+//          submitted with POST /api/v1/seller/verification/documents,
+//          using the token this endpoint returns)
 // @route   POST /api/v1/seller/auth/register
 // @access  Public
 const registerSellerHandler = async (req, res) => {
@@ -12,21 +14,6 @@ const registerSellerHandler = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Please fill in all required fields.' });
     }
 
-    const nidFile = req.files?.nid?.[0];
-    const tradeLicenseFile = req.files?.tradeLicense?.[0];
-
-    if (!nidFile || !tradeLicenseFile) {
-      return res.status(400).json({
-        success: false,
-        message: 'Both NID and Trade License documents are required to register.',
-      });
-    }
-
-    const [nidUpload, tradeLicenseUpload] = await Promise.all([
-      uploadToCloudinary(nidFile, 'govaly/sellers/nid'),
-      uploadToCloudinary(tradeLicenseFile, 'govaly/sellers/trade-license'),
-    ]);
-
     const seller = await registerSeller({
       shopName,
       shopSlug,
@@ -35,13 +22,17 @@ const registerSellerHandler = async (req, res) => {
       password,
       phone,
       address,
-      nidDocument: nidUpload.url,
-      tradeLicenseDocument: tradeLicenseUpload.url,
     });
+
+    // A pending-status token, good only for the onboarding routes
+    // guarded by protectSellerAny (uploading + submitting documents) —
+    // not for logging into the dashboard or selling actions.
+    const token = issueSellerToken(seller);
 
     res.status(201).json({
       success: true,
-      message: 'Registration submitted successfully. Pending admin approval.',
+      message: 'Account created. Upload your NID and Trade License to finish your application.',
+      token,
       data: {
         id: seller._id,
         shopName: seller.shopName,

@@ -49,13 +49,25 @@ const authenticateSeller = async (email, password) => {
     throw { status: 401, message: 'Invalid credentials.' };
   }
 
-  const token = jwt.sign(
-    { id: seller._id, role: 'seller' },
-    process.env.JWT_SECRET,
-    { expiresIn: '7d' }
-  );
+  const token = issueSellerToken(seller);
 
   return { token, seller };
 };
 
-module.exports = { registerSeller, authenticateSeller };
+/*
+ * A token for a still-pending seller — used only right after
+ * registration so they can immediately upload NID/trade-license and
+ * submit verification, without being able to log into the dashboard
+ * or run selling actions (those stay gated behind status==='approved'
+ * via protectSeller). authenticateSeller (normal login) deliberately
+ * still refuses pending/suspended sellers a token.
+ */
+const issueSellerToken = (seller) => {
+  return jwt.sign(
+    { id: seller._id, role: 'seller' },
+    process.env.JWT_SECRET,
+    { expiresIn: '7d' }
+  );
+};
+
+module.exports = { registerSeller, authenticateSeller, issueSellerToken };
