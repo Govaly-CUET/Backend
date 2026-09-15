@@ -65,4 +65,44 @@ const protectSeller = async (req, res, next) => {
   }
 };
 
-module.exports = { protectAdmin, protectSeller };
+const protectAdminOrSeller = async (req, res, next) => {
+  try {
+    const authorization = req.headers.authorization;
+    if (!authorization?.startsWith('Bearer')) {
+      return res.status(401).json({ success: false, message: 'Not authorized, no token' });
+    }
+
+    const token = authorization.split(' ')[1];
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+    if (decoded.role === 'admin') {
+      const admin = await Admin.findById(decoded.id).select('-password');
+      if (!admin) {
+        return res.status(401).json({ success: false, message: 'Admin no longer exists' });
+      }
+      req.admin = admin;
+      return next();
+    }
+
+    if (decoded.role === 'seller') {
+      const seller = await Seller.findById(decoded.id).select('-password');
+      if (!seller) {
+        return res.status(401).json({ success: false, message: 'Seller no longer exists' });
+      }
+      if (seller.status !== 'active') {
+        return res.status(403).json({
+          success: false,
+          message: 'Account not active. Cannot perform this action.',
+        });
+      }
+      req.seller = seller;
+      return next();
+    }
+
+    return res.status(403).json({ success: false, message: 'Forbidden' });
+  } catch (error) {
+    return res.status(401).json({ success: false, message: 'Not authorized, token failed' });
+  }
+};
+
+module.exports = { protectAdmin, protectSeller, protectAdminOrSeller };
