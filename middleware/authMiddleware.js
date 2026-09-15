@@ -65,23 +65,14 @@ const protectSeller = async (req, res, next) => {
   }
 };
 
-/*
- * Accepts either an admin or an active-seller JWT and sets
- * req.admin / req.seller accordingly — for routes both roles need,
- * like the shared Cloudinary upload endpoint. Whoever ends up
- * calling the route, downstream code reads the actual uploader off
- * req.admin/req.seller — never off anything the client claims.
- */
 const protectAdminOrSeller = async (req, res, next) => {
   try {
-    let token;
-    if (req.headers.authorization?.startsWith('Bearer')) {
-      token = req.headers.authorization.split(' ')[1];
-    }
-    if (!token) {
+    const authorization = req.headers.authorization;
+    if (!authorization?.startsWith('Bearer')) {
       return res.status(401).json({ success: false, message: 'Not authorized, no token' });
     }
 
+    const token = authorization.split(' ')[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     if (decoded.role === 'admin') {
@@ -98,7 +89,7 @@ const protectAdminOrSeller = async (req, res, next) => {
       if (!seller) {
         return res.status(401).json({ success: false, message: 'Seller no longer exists' });
       }
-      if (seller.status !== 'approved') {
+      if (seller.status !== 'active') {
         return res.status(403).json({
           success: false,
           message: 'Account not active. Cannot perform this action.',
