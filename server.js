@@ -9,8 +9,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const sellerRoutes = require('./routes/sellerRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const customerRoutes = require('./routes/customerRoutes');
-const productRoutes = require('./routes/productRoutes');
-const adminCategoryRoutes = require('./routes/adminCategoryRoutes');
+const sellerProductRoutes = require('./routes/sellerProductRoutes');
 
 const app = express();
 
@@ -60,12 +59,11 @@ app.get('/', (req, res) => {
   res.send('Backend is running!');
 });
 
-app.use('/seller', productRoutes);
+app.use('/seller', sellerProductRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/seller', sellerRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/customer', customerRoutes);
-app.use('/api/v1/admin/categories', adminCategoryRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

@@ -5,24 +5,21 @@ const router = express.Router();
 const { loginAdmin, getMe } = require('../controllers/adminAuthController');
 const { protectAdmin } = require('../middleware/authMiddleware');
 const { getProfile, updateProfile } = require('../controllers/adminProfileController');
-const {
-  getAll,
-  getPending,
-  getApproved,
-  getSuspended,
-  verifySeller,
-} = require('../controllers/adminSellerController');
 const adminCustomerRoutes = require('./adminCustomerRoutes');
-const {
-  getSellersCommission,
-  updateCommission,
-} = require('../controllers/adminCommissionController');
+const adminCategoryRoutes = require('./adminCategoryRoutes');
+const adminVerificationRoutes = require('./adminVerificationRoutes');
+const adminCommissionRoutes = require('./adminCommissionRoutes');
+const adminProductRoutes = require('./adminProductRoutes');
 const {
   getMedia,
   updateMedia,
   replaceMedia,
 } = require('../controllers/adminMediaController');
 const upload = require('../middleware/uploadMiddleware');
+
+
+
+
 
 // Public
 router.post('/auth/login', loginAdmin);
@@ -35,16 +32,11 @@ router.get('/auth/me', getMe);
 router.get('/profile', getProfile);
 router.patch('/profile', updateProfile);
 
-router.get('/sellers/verification/all', getAll);
-router.get('/sellers/verification/pending', getPending);
-router.get('/sellers/verification/approved', getApproved);
-router.get('/sellers/verification/suspended', getSuspended);
-router.patch('/sellers/:id/verification', verifySeller);
-
 router.use('/customers', adminCustomerRoutes);
-
-router.get('/sellers/commission', getSellersCommission);
-router.patch('/sellers/:id/commission', updateCommission);
+router.use('/categories', adminCategoryRoutes);
+router.use('/sellers', adminVerificationRoutes);
+router.use('/sellers', adminCommissionRoutes);
+router.use('/products', adminProductRoutes);
 
 router.get('/media', getMedia);
 router.patch('/media/:id', updateMedia);

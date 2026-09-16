@@ -10,53 +10,27 @@ const {
   "../controllers/adminCategoryController"
 );
 
-const {
-  protectAdmin,
-} = require(
-  "../middleware/authMiddleware"
-);
-
 const router = express.Router();
 
 
 // List categories
-router.get(
-  "/",
-  protectAdmin,
-  getCategories
-);
+router.get("/", getCategories);
 
 
 // Create category
-router.post(
-  "/",
-  protectAdmin,
-  createCategory
-);
+router.post("/", createCategory);
 
 
 // Category details
-router.get(
-  "/:id",
-  protectAdmin,
-  getCategoryById
-);
+router.get("/:id", getCategoryById);
 
 
 // Update category
-router.patch(
-  "/:id",
-  protectAdmin,
-  updateCategory
-);
+router.patch("/:id", updateCategory);
 
 
 // Delete category
-router.delete(
-  "/:id",
-  protectAdmin,
-  deleteCategory
-);
+router.delete("/:id", deleteCategory);
 
 
 module.exports = router;
