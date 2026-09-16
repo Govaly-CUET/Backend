@@ -17,7 +17,7 @@ const {
 } = require('../controllers/adminMediaController');
 const upload = require('../middleware/uploadMiddleware');
 
-
+const adminPagesRoutes = require('./adminPagesRoutes');
 
 
 
@@ -31,6 +31,8 @@ router.get('/auth/me', getMe);
 
 router.get('/profile', getProfile);
 router.patch('/profile', updateProfile);
+
+router.use('/pages', adminPagesRoutes);
 
 router.use('/customers', adminCustomerRoutes);
 router.use('/categories', adminCategoryRoutes);
