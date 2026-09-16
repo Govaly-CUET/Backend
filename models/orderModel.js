@@ -6,12 +6,9 @@ const mongoose = require('mongoose');
  */
 const orderItemSchema = new mongoose.Schema(
   {
-    // Admin-created products only — seller's own product creation
-    // isn't part of this build, so a plain ref is enough (no
-    // refPath/dual-model needed).
     product: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'AdminProduct',
+      ref: 'Product',
       required: true,
     },
     // Snapshots — survive the product being edited or deleted later,
