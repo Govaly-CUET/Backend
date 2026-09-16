@@ -1,3 +1,4 @@
+const AdminProduct = require('../models/adminProductModel');
 const Product = require('../models/productModel');
 const Category = require('../models/categoryModel');
 const Seller = require('../models/sellerModel');
@@ -111,10 +112,18 @@ const getAdminProducts = async (filters = {}) => {
     match.name = { $regex: search, $options: 'i' };
   }
 
-  return Product.find(match)
-    .sort({ createdAt: -1 })
-    .populate('category', 'name')
-    .populate('seller', 'shopName');
+  const [adminProducts, sellerProducts] = await Promise.all([
+    AdminProduct.find(match)
+      .populate('category', 'name')
+      .populate('seller', 'shopName'),
+    Product.find(match)
+      .populate('category', 'name')
+      .populate('seller', 'shopName'),
+  ]);
+
+  return [...adminProducts, ...sellerProducts].sort(
+    (first, second) => second.createdAt - first.createdAt
+  );
 };
 
 module.exports = { createAdminProduct, getAdminProducts };

@@ -1,5 +1,26 @@
 const Product = require('../models/productModel');
 
+// @desc    List products owned by the logged-in seller
+// @route   GET /seller/products
+// @access  Private (Seller only)
+const getSellerProducts = async (req, res) => {
+    try {
+        const products = await Product.find({ seller: req.seller._id })
+            .sort({ createdAt: -1 })
+            .populate('category', 'name');
+
+        res.status(200).json({
+            success: true,
+            data: products,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
 // @desc    Create a new product
 // @route   POST /seller/products
 // @access  Private (Seller only)
@@ -38,5 +59,6 @@ const createProduct = async (req, res) => {
 };
 
 module.exports = {
+    getSellerProducts,
     createProduct,
 };
