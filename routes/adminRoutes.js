@@ -11,6 +11,7 @@ const adminVerificationRoutes = require('./adminVerificationRoutes');
 const adminCommissionRoutes = require('./adminCommissionRoutes');
 const adminProductRoutes = require('./adminProductRoutes');
 const adminOrderRoutes = require('./adminOrderRoutes');
+const adminReviewRoutes = require('./adminReviewRoutes');
 const {
   getMedia,
   updateMedia,
@@ -43,6 +44,7 @@ router.use('/sellers', adminVerificationRoutes);
 router.use('/sellers', adminCommissionRoutes);
 router.use('/products', adminProductRoutes);
 router.use('/orders', adminOrderRoutes);
+router.use('/reviews', adminReviewRoutes);
 
 router.get('/media', getMedia);
 router.patch('/media/:id', updateMedia);

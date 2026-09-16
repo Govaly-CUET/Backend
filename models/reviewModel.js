@@ -38,12 +38,6 @@ const reviewSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
-    // Snapshot of which size they bought/reviewed, shown alongside
-    // the review (matches the "Size: 40" line in the reference design).
-    size: {
-      type: String,
-      trim: true,
-    },
   },
   {
     timestamps: true,
