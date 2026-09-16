@@ -5,7 +5,7 @@ const { getAllSellersCommission, updateSellerCommission } = require('../services
 // @access  Private (Admin)
 const getSellersCommission = async (req, res) => {
   try {
-    const sellers = await getAllSellersCommission();
+    const sellers = await getAllSellersCommission(req.query);
 
     res.status(200).json({
       success: true,

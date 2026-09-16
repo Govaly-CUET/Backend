@@ -1,4 +1,5 @@
 const Product = require('../models/productModel');
+const { getSellerProducts } = require('../services/sellerProductService');
 
 // @desc    Create a new product
 // @route   POST /seller/products
@@ -37,6 +38,26 @@ const createProduct = async (req, res) => {
     }
 };
 
+// @desc    List the logged-in seller's own products
+// @route   GET /seller/products
+// @access  Private (Seller only)
+const listMyProducts = async (req, res) => {
+    try {
+        const products = await getSellerProducts(req.seller._id, req.query);
+
+        res.status(200).json({
+            success: true,
+            data: products,
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message,
+        });
+    }
+};
+
 module.exports = {
     createProduct,
+    listMyProducts,
 };
