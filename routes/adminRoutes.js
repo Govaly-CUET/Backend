@@ -10,6 +10,7 @@ const adminCategoryRoutes = require('./adminCategoryRoutes');
 const adminVerificationRoutes = require('./adminVerificationRoutes');
 const adminCommissionRoutes = require('./adminCommissionRoutes');
 const adminProductRoutes = require('./adminProductRoutes');
+const adminOrderRoutes = require('./adminOrderRoutes');
 const {
   getMedia,
   updateMedia,
@@ -18,7 +19,7 @@ const {
 const upload = require('../middleware/uploadMiddleware');
 
 const adminPagesRoutes = require('./adminPagesRoutes');
-
+const adminDashboardRoutes = require('./adminDashboardRoutes'); // here change
 
 
 // Public
@@ -32,6 +33,8 @@ router.get('/auth/me', getMe);
 router.get('/profile', getProfile);
 router.patch('/profile', updateProfile);
 
+router.use('/dashboard', adminDashboardRoutes); // here change
+
 router.use('/pages', adminPagesRoutes);
 
 router.use('/customers', adminCustomerRoutes);
@@ -39,6 +42,7 @@ router.use('/categories', adminCategoryRoutes);
 router.use('/sellers', adminVerificationRoutes);
 router.use('/sellers', adminCommissionRoutes);
 router.use('/products', adminProductRoutes);
+router.use('/orders', adminOrderRoutes);
 
 router.get('/media', getMedia);
 router.patch('/media/:id', updateMedia);

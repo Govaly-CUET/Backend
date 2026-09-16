@@ -81,7 +81,7 @@ const createAdminProduct = async ({
   await assertValidCategoryAndSubcategory(category, subcategory);
   await assertSellerExists(seller);
 
-  const product = await AdminProduct.create({
+  const product = await Product.create({
     name: name.trim(),
     category,
     subcategory,
