@@ -18,7 +18,7 @@ const {
 const upload = require('../middleware/uploadMiddleware');
 
 const adminPagesRoutes = require('./adminPagesRoutes');
-
+const adminDashboardRoutes = require('./adminDashboardRoutes'); // here change
 
 
 // Public
@@ -31,6 +31,8 @@ router.get('/auth/me', getMe);
 
 router.get('/profile', getProfile);
 router.patch('/profile', updateProfile);
+
+router.use('/dashboard', adminDashboardRoutes); // here change
 
 router.use('/pages', adminPagesRoutes);
 
