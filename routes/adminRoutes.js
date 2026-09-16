@@ -10,6 +10,7 @@ const adminCategoryRoutes = require('./adminCategoryRoutes');
 const adminVerificationRoutes = require('./adminVerificationRoutes');
 const adminCommissionRoutes = require('./adminCommissionRoutes');
 const adminProductRoutes = require('./adminProductRoutes');
+const adminOrderRoutes = require('./adminOrderRoutes');
 const {
   getMedia,
   updateMedia,
@@ -39,6 +40,7 @@ router.use('/categories', adminCategoryRoutes);
 router.use('/sellers', adminVerificationRoutes);
 router.use('/sellers', adminCommissionRoutes);
 router.use('/products', adminProductRoutes);
+router.use('/orders', adminOrderRoutes);
 
 router.get('/media', getMedia);
 router.patch('/media/:id', updateMedia);
