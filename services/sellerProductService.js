@@ -16,4 +16,6 @@ const getSellerProducts = async (sellerId, { search } = {}) => {
     .populate('category', 'name');
 };
 
+
 module.exports = { getSellerProducts };
+
