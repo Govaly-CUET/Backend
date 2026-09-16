@@ -48,8 +48,6 @@ const reviewSchema = new mongoose.Schema(
 // reviewing the same product twice.
 reviewSchema.index({ product: 1, customer: 1 }, { unique: true });
 
-<<<<<<< HEAD
+
 module.exports = mongoose.model('Review', reviewSchema);
-=======
-module.exports = mongoose.model('Review', reviewSchema);
->>>>>>> dev_piash
+
