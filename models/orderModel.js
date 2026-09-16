@@ -6,18 +6,12 @@ const mongoose = require('mongoose');
  */
 const orderItemSchema = new mongoose.Schema(
   {
-    // Products can come from either creation path — seller's own
-    // (Product) or admin-created (AdminProduct) — so this is a
-    // refPath, not a fixed ref, same pattern as mediaModel.js's
-    // uploadedByType/uploadedByModel.
-    productModel: {
-      type: String,
-      enum: ['Product', 'AdminProduct'],
-      required: true,
-    },
+    // Admin-created products only — seller's own product creation
+    // isn't part of this build, so a plain ref is enough (no
+    // refPath/dual-model needed).
     product: {
       type: mongoose.Schema.Types.ObjectId,
-      refPath: 'items.productModel',
+      ref: 'AdminProduct',
       required: true,
     },
     // Snapshots — survive the product being edited or deleted later,
@@ -84,11 +78,6 @@ const orderSchema = new mongoose.Schema(
       district: { type: String, required: true, trim: true },
       area: { type: String, required: true, trim: true },
       address: { type: String, required: true, trim: true },
-    },
-    paymentMethod: {
-      type: String,
-      enum: ['COD', 'Bkash', 'Nagad', 'Card'],
-      required: true,
     },
     // This seller's portion only — product price, no shipping/
     // discount lines (per the simplified design).
