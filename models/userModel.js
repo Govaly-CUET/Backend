@@ -26,9 +26,16 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+    // Kept flexible so existing string addresses remain readable while new
+    // profile and checkout forms can store structured delivery details.
     address: {
-      type: String,
+      type: mongoose.Schema.Types.Mixed,
       default: null,
+    },
+
+    addresses: {
+      type: [mongoose.Schema.Types.Mixed],
+      default: [],
     },
 
     gender: {
@@ -45,7 +52,28 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+
+    cartItems: [{
+      product: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Product',
+        required: true,
+      },
+      productModel: {
+        type: String,
+        default: 'Product',
+      },
+      quantity: { type: Number, min: 1, default: 1 },
+      size: { type: String, default: '' },
+      color: { type: String, default: '' },
+    }],
+
+    wishlist: [{
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Product',
+    }],
   },
+
   {
     timestamps: true,
   }

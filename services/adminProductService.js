@@ -1,7 +1,7 @@
-const AdminProduct = require('../models/adminProductModel');
 const Product = require('../models/productModel');
 const Category = require('../models/categoryModel');
 const Seller = require('../models/sellerModel');
+const Review = require('../models/reviewModel');
 
 /*
  * Confirms `subcategoryId` is actually one of `categoryId`'s own
@@ -104,7 +104,7 @@ const createAdminProduct = async ({
 // ===============================
 
 const getAdminProducts = async (filters = {}) => {
-  const { search } = filters;
+  const { search, seller, category, status, sortBy } = filters;
 
   const match = {};
 
@@ -112,18 +112,54 @@ const getAdminProducts = async (filters = {}) => {
     match.name = { $regex: search, $options: 'i' };
   }
 
-  const [adminProducts, sellerProducts] = await Promise.all([
-    AdminProduct.find(match)
-      .populate('category', 'name')
-      .populate('seller', 'shopName'),
-    Product.find(match)
-      .populate('category', 'name')
-      .populate('seller', 'shopName'),
+  if (seller) {
+    match.seller = seller;
+  }
+
+  if (category) {
+    match.category = category;
+  }
+
+  if (status) {
+    match.status = status;
+  }
+
+  let sort = { createdAt: -1 };
+
+  if (sortBy === 'price_asc') sort = { sale_price: 1 };
+  if (sortBy === 'price_desc') sort = { sale_price: -1 };
+  if (sortBy === 'sold_asc') sort = { sold_items: 1 };
+  if (sortBy === 'sold_desc') sort = { sold_items: -1 };
+
+  const products = await Product.find(match)
+    .sort(sort)
+    .populate('category', 'name')
+    .populate('seller', 'shopName')
+    .lean();
+
+  const ratingRows = await Review.aggregate([
+    { $group: { _id: '$product', average: { $avg: '$rating' }, count: { $sum: 1 } } },
   ]);
 
-  return [...adminProducts, ...sellerProducts].sort(
-    (first, second) => second.createdAt - first.createdAt
-  );
+  const ratingByProduct = {};
+  ratingRows.forEach((row) => {
+    ratingByProduct[row._id.toString()] = {
+      average: Math.round(row.average * 10) / 10,
+      count: row.count,
+    };
+  });
+
+  let withRatings = products.map((p) => ({
+    ...p,
+    rating: ratingByProduct[p._id.toString()] || { average: 0, count: 0 },
+  }));
+
+  if (filters.rating) {
+    const minRating = Number(filters.rating);
+    withRatings = withRatings.filter((p) => p.rating.average >= minRating);
+  }
+
+  return withRatings;
 };
 
 module.exports = { createAdminProduct, getAdminProducts };
