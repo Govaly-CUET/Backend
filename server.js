@@ -10,6 +10,7 @@ const sellerRoutes = require('./routes/sellerRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const sellerProductRoutes = require('./routes/sellerProductRoutes');
+const sellerCategoryRoutes = require('./routes/sellerCategoryRoutes');
 
 const app = express();
 
@@ -62,6 +63,7 @@ app.get('/', (req, res) => {
 app.use('/seller', sellerProductRoutes);
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/seller', sellerRoutes);
+app.use('/api/v1/seller/categories', sellerCategoryRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/customer', customerRoutes);
 
