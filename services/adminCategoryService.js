@@ -1,5 +1,6 @@
 const mongoose = require("mongoose");
 const Category = require("../models/categoryModel");
+const Product = require("../models/productModel");
 
 
 // ===============================
@@ -22,7 +23,43 @@ const getCategories = async (filters = {}) => {
     .sort({ name: 1 })
     .lean();
 
-  return categories;
+  const categoryIds = categories.map((category) => category._id);
+  const productCounts = categoryIds.length
+    ? await Product.aggregate([
+      {
+        $match: {
+          category: { $in: categoryIds },
+          subcategory: { $ne: null },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            category: '$category',
+            subcategory: '$subcategory',
+          },
+          productCount: { $sum: 1 },
+        },
+      },
+    ])
+    : [];
+
+  const countsBySubcategory = new Map(
+    productCounts.map((count) => [
+      `${count._id.category}-${count._id.subcategory}`,
+      count.productCount,
+    ])
+  );
+
+  return categories.map((category) => ({
+    ...category,
+    subcategory: (category.subcategory || []).map((subcategory) => ({
+      ...subcategory,
+      productCount: countsBySubcategory.get(
+        `${category._id}-${subcategory._id}`
+      ) || 0,
+    })),
+  }));
 };
 
 

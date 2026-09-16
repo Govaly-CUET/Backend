@@ -1,4 +1,4 @@
-const AdminProduct = require('../models/adminProductModel');
+const Product = require('../models/productModel');
 const Category = require('../models/categoryModel');
 const Seller = require('../models/sellerModel');
 
@@ -80,7 +80,7 @@ const createAdminProduct = async ({
   await assertValidCategoryAndSubcategory(category, subcategory);
   await assertSellerExists(seller);
 
-  const product = await AdminProduct.create({
+  const product = await Product.create({
     name: name.trim(),
     category,
     subcategory,
@@ -111,7 +111,7 @@ const getAdminProducts = async (filters = {}) => {
     match.name = { $regex: search, $options: 'i' };
   }
 
-  return AdminProduct.find(match)
+  return Product.find(match)
     .sort({ createdAt: -1 })
     .populate('category', 'name')
     .populate('seller', 'shopName');
