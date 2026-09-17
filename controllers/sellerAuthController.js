@@ -1,3 +1,4 @@
+const Seller = require('../models/sellerModel');
 const { registerSeller, authenticateSeller, issueSellerToken } = require('../services/sellerAuthService');
 
 // @desc    Register a new seller account (no documents required here —
@@ -24,9 +25,6 @@ const registerSellerHandler = async (req, res) => {
       address,
     });
 
-    // A pending-status token, good only for the onboarding routes
-    // guarded by protectSellerAny (uploading + submitting documents) —
-    // not for logging into the dashboard or selling actions.
     const token = issueSellerToken(seller);
 
     res.status(201).json({
@@ -53,7 +51,7 @@ const registerSellerHandler = async (req, res) => {
 // @desc    Log in seller to dashboard
 // @route   POST /api/v1/seller/auth/login
 // @access  Public
-const loginSeller = async (req, res) => {
+const loginSellerHandler = async (req, res) => {
   try {
     const { email, password } = req.body;
 
@@ -87,4 +85,52 @@ const loginSeller = async (req, res) => {
   }
 };
 
-module.exports = { registerSeller: registerSellerHandler, loginSeller };
+// @desc    Get logged-in seller's own profile
+// @route   GET /api/v1/seller/me
+// @access  Private (Seller only)
+const getSellerProfile = async (req, res) => {
+  try {
+    res.status(200).json({
+      success: true,
+      data: req.seller,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// @desc    Update logged-in seller's shop info
+// @route   PATCH /api/v1/seller/me
+// @access  Private (Seller only)
+const updateSellerProfile = async (req, res) => {
+  try {
+    const { shopName, phone, address, logoUrl } = req.body;
+
+    const updateFields = {};
+    if (shopName !== undefined) updateFields.shopName = shopName;
+    if (phone !== undefined) updateFields.phone = phone;
+    if (address !== undefined) updateFields.address = address;
+    if (logoUrl !== undefined) updateFields.logoUrl = logoUrl;
+
+    const updatedSeller = await Seller.findByIdAndUpdate(
+      req.seller._id,
+      updateFields,
+      { new: true, runValidators: true }
+    ).select('-password');
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile updated successfully.',
+      data: updatedSeller,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+module.exports = {
+  registerSeller: registerSellerHandler,
+  loginSeller: loginSellerHandler,
+  getSellerProfile,
+  updateSellerProfile,
+};

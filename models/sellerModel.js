@@ -41,6 +41,10 @@ const sellerSchema = new mongoose.Schema(
       required: [true, 'Shop address is required'],
       trim: true,
     },
+     logoUrl: {
+      type: String,
+      default: '',
+    },
     status: {
       type: String,
       enum: ['pending', 'approved', 'suspended'],
