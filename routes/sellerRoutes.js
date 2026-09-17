@@ -8,6 +8,7 @@ const upload = require('../middleware/uploadMiddleware');
 const { uploadFile } = require('../controllers/uploadController');
 const { getDashboardStats } = require('../controllers/sellerDashboardController');
 const { getEarnings } = require('../controllers/sellerEarningsController');
+const { getReviews } = require('../controllers/sellerReviewsController');
 
 // Public
 router.post('/auth/register', registerSeller);
@@ -22,5 +23,6 @@ router.get('/me', protectSeller, getSellerProfile);
 router.patch('/me', protectSeller, updateSellerProfile);
 router.get('/dashboard/stats', protectSeller, getDashboardStats);
 router.get('/earnings', protectSeller, getEarnings);
+router.get('/reviews', protectSeller, getReviews);
 
 module.exports = router;
