@@ -1,5 +1,7 @@
 const { getProfile, updateProfile } = require('../services/customerProfileService');
 const { changePassword } = require('../services/customerAuthService');
+const { uploadToCloudinary } = require('../services/uploadService');
+const cloudinary = require('../config/cloudinary');
 
 // @desc    Get own profile
 // @route   GET /api/v1/customer/me
@@ -27,6 +29,41 @@ const patchMe = async (req, res) => {
   }
 };
 
+// @desc    Upload or replace own profile picture
+// @route   POST /api/v1/customer/me/avatar
+// @access  Private (Customer)
+const uploadAvatar = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'Please choose a profile image.' });
+    }
+
+    if (!['image/jpeg', 'image/jpg', 'image/png', 'image/webp'].includes(req.file.mimetype)) {
+      return res.status(400).json({ success: false, message: 'Profile photo must be a JPG, PNG, or WEBP image.' });
+    }
+
+    const uploaded = await uploadToCloudinary(req.file, 'govaly/customer-avatars');
+    const oldPublicId = req.user.profileImagePublicId;
+
+    // Update only the authenticated customer's image. The email is never
+    // accepted here or by the general profile update service.
+    req.user.image = uploaded.url;
+    req.user.profileImagePublicId = uploaded.publicId;
+    await req.user.save();
+
+    if (oldPublicId) {
+      cloudinary.uploader.destroy(oldPublicId).catch((error) => {
+        console.error('Previous customer avatar cleanup failed:', error.message);
+      });
+    }
+
+    const { password, ...user } = req.user.toObject();
+    res.status(200).json({ success: true, message: 'Profile photo updated.', data: user });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message || 'Failed to upload profile photo.' });
+  }
+};
+
 // @desc    Change own password (must know current password)
 // @route   PATCH /api/v1/customer/change-password
 // @access  Private (Customer)
@@ -44,4 +81,4 @@ const patchPassword = async (req, res) => {
   }
 };
 
-module.exports = { getMe, patchMe, patchPassword };
+module.exports = { getMe, patchMe, patchPassword, uploadAvatar };

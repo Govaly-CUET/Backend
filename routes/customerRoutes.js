@@ -6,7 +6,8 @@ const {
   registerCustomer,
   loginCustomer,
 } = require('../controllers/customerAuthController');
-const { getMe, patchMe, patchPassword } = require('../controllers/customerProfileController');
+const { getMe, patchMe, patchPassword, uploadAvatar } = require('../controllers/customerProfileController');
+const upload = require('../middleware/uploadMiddleware');
 const {
   listWishlist,
   addItem: addWishlistItem,
@@ -57,6 +58,7 @@ router.use(protectCustomer);
 
 router.get('/me', getMe);
 router.patch('/me', patchMe);
+router.post('/me/avatar', upload.single('image'), uploadAvatar);
 router.patch('/change-password', patchPassword);
 
 router.get('/wishlist', listWishlist);

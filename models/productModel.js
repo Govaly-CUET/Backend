@@ -12,7 +12,6 @@ const productSchema = new mongoose.Schema(
       ref: 'Category',
       required: [true, 'Category is required'],
     },
-<<<<<<< HEAD
     // Points at one item inside the parent category's own
     // subcategory[] array — not a separate collection, so no ref
     // here. Look it up with Category.findOne({ _id: category,
@@ -20,12 +19,7 @@ const productSchema = new mongoose.Schema(
     subcategory: {
       type: mongoose.Schema.Types.ObjectId,
       required: [true, 'Subcategory is required'],
-=======
-    subcategory: {
-      type: mongoose.Schema.Types.ObjectId,
-      required: false,
-      default: null,
->>>>>>> dev_piash
+
     },
     description: {
       type: String,

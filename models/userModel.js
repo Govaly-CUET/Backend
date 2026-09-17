@@ -53,6 +53,13 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+    // The Cloudinary asset id lets an avatar replacement remove the old
+    // image without trusting any value supplied by the browser.
+    profileImagePublicId: {
+      type: String,
+      default: null,
+    },
+
     cartItems: [{
       product: {
         type: mongoose.Schema.Types.ObjectId,

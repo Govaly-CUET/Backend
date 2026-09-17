@@ -2,7 +2,7 @@ const Category = require('../models/categoryModel');
 const Media = require('../models/mediaModel');
 const cloudinary = require('../config/cloudinary');
 
-const HEADER_TITLES = ['top banner', 'logo'];
+const HEADER_TITLES = ['top banner', 'logo', 'thank you'];
 
 const uploadToCloudinary = (fileBuffer, folder) => {
   return new Promise((resolve, reject) => {
@@ -250,7 +250,7 @@ const uploadHeaderMedia = async (req, res) => {
     if (!HEADER_TITLES.includes(rawTitle)) {
       return res.status(400).json({
         success: false,
-        message: 'title must be "top banner" or "logo".',
+        message: 'title must be "top banner", "logo", or "thank you".',
       });
     }
 
@@ -269,15 +269,12 @@ const uploadHeaderMedia = async (req, res) => {
       await existing.deleteOne();
     }
 
-    const uploaded = await uploadToCloudinary(
-      req.file.buffer,
-      'govaly/pages'
-    );
+    const uploaded = await uploadToCloudinary(req.file, 'govaly/pages');
 
     const media = await Media.create({
       title: rawTitle,
       url: uploaded.url,
-      publicId: uploaded.public_id,
+      publicId: uploaded.publicId,
       fileType: req.file.mimetype,
       size: req.file.size,
       width: uploaded.width,

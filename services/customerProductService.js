@@ -27,6 +27,20 @@ const slugify = (value) => String(value || '')
   .replace(/[^a-z0-9]+/g, '-')
   .replace(/^-+|-+$/g, '');
 
+const escapeRegex = (value) => String(value || '').replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Treat every word in a search phrase as a term. This makes "men sandal"
+// match "Men's Sandals" as well as a product called "Men sandal".
+const searchTerms = (value) => String(value || '')
+  .toLowerCase()
+  .match(/[a-z0-9]+/g)
+  ?.slice(0, 8) || [];
+
+const categoryMatchesTerms = (value, terms) => {
+  const words = searchTerms(value);
+  return terms.every((term) => words.some((word) => word.startsWith(term) || term.startsWith(word)));
+};
+
 const withCustomerFields = (product) => ({
   ...product,
   slug: product.slug || makeSlug(product.name, product._id),
@@ -83,11 +97,39 @@ const listProducts = async (query) => {
   const { search, category, seller, sort, page = 1, limit = 20 } = query;
   const q = { status: 'in_stock' };
 
-  if (search) {
-    q.$or = [
-      { name: new RegExp(search, 'i') },
-      { description: new RegExp(search, 'i') },
-    ];
+  const terms = searchTerms(search);
+  if (terms.length) {
+    // Match a specific product name/description even if its words are in a
+    // different order, then add category and subcategory product groups.
+    const productTextMatch = {
+      $and: terms.map((term) => ({
+        $or: [
+          { name: new RegExp(escapeRegex(term), 'i') },
+          { description: new RegExp(escapeRegex(term), 'i') },
+        ],
+      })),
+    };
+
+    const categories = await Category.find().select('name subcategory').lean();
+    const categoryMatches = [productTextMatch];
+
+    categories.forEach((item) => {
+      // "men" returns every product in the Men category.
+      if (categoryMatchesTerms(item.name, terms)) {
+        categoryMatches.push({ category: item._id });
+      }
+
+      // "men sandal" only returns the matching Men > Sandals group, not
+      // every Men product. Combining the parent and child names lets either
+      // wording be found by the same search field.
+      (item.subcategory || []).forEach((subcategory) => {
+        if (categoryMatchesTerms(`${item.name} ${subcategory.name}`, terms)) {
+          categoryMatches.push({ category: item._id, subcategory: subcategory._id });
+        }
+      });
+    });
+
+    q.$or = categoryMatches;
   }
   if (category) {
     const catFilter = await resolveCategoryFilter(category);
