@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const Admin = require('../models/adminModel');
 const Seller = require('../models/sellerModel');
+const User = require('../models/userModel');
 
 const protectAdmin = async (req, res, next) => {
   try {
@@ -146,5 +147,57 @@ const protectAdminOrSeller = async (req, res, next) => {
     return res.status(401).json({ success: false, message: 'Not authorized, token failed' });
   }
 };
+const protectCustomer = async (req, res, next) => {
+  try {
+    let token;
 
+<<<<<<< Updated upstream
 module.exports = { protectAdmin, protectSeller, protectSellerAny, protectAdminOrSeller };
+=======
+    if (req.headers.authorization?.startsWith('Bearer')) {
+      token = req.headers.authorization.split(' ')[1];
+    }
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: 'Not authorized, no token',
+      });
+    }
+
+    const decoded = jwt.verify(
+      token,
+      process.env.JWT_SECRET
+    );
+
+    if (decoded.role !== 'customer') {
+      return res.status(403).json({
+        success: false,
+        message: 'Forbidden — customer access only',
+      });
+    }
+
+    const customer = await User.findById(
+      decoded.id
+    ).select('-password');
+
+    if (!customer) {
+      return res.status(401).json({
+        success: false,
+        message: 'Customer no longer exists',
+      });
+    }
+
+    req.customer = customer;
+
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      message: 'Not authorized, token failed',
+    });
+  }
+};
+
+module.exports = { protectAdmin, protectSeller, protectAdminOrSeller ,protectCustomer};
+>>>>>>> Stashed changes

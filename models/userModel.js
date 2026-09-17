@@ -1,5 +1,65 @@
 const mongoose = require("mongoose");
 
+const deliveryAddressSchema = new mongoose.Schema(
+  {
+    fullName: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    phoneNumber: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    division: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    district: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    area: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    address: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    additionalInstruction: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    label: {
+      type: String,
+      enum: ["Home", "Office"],
+      default: "Home",
+    },
+
+    isDefault: {
+      type: Boolean,
+      default: false,
+    },
+  },
+  {
+    _id: true,
+  }
+);
+
 const userSchema = new mongoose.Schema(
   {
     name: {
@@ -44,6 +104,11 @@ const userSchema = new mongoose.Schema(
     image: {
       type: String,
       default: null,
+    },
+
+    deliveryAddresses: {
+      type: [deliveryAddressSchema],
+      default: [],
     },
   },
   {
