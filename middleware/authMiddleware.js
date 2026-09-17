@@ -151,9 +151,6 @@ const protectCustomer = async (req, res, next) => {
   try {
     let token;
 
-<<<<<<< Updated upstream
-module.exports = { protectAdmin, protectSeller, protectSellerAny, protectAdminOrSeller };
-=======
     if (req.headers.authorization?.startsWith('Bearer')) {
       token = req.headers.authorization.split(' ')[1];
     }
@@ -199,5 +196,10 @@ module.exports = { protectAdmin, protectSeller, protectSellerAny, protectAdminOr
   }
 };
 
-module.exports = { protectAdmin, protectSeller, protectAdminOrSeller ,protectCustomer};
->>>>>>> Stashed changes
+module.exports = {
+  protectAdmin,
+  protectSeller,
+  protectSellerAny,
+  protectAdminOrSeller,
+  protectCustomer,
+};
