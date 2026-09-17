@@ -1,14 +1,11 @@
-const Product = require('../models/productModel');
-const { getSellerProducts } = require('../services/sellerProductService');
+const { getSellerProducts, createSellerProduct } = require('../services/sellerProductService');
 
 // @desc    List products owned by the logged-in seller
 // @route   GET /seller/products
 // @access  Private (Seller only)
-const getSellerProducts = async (req, res) => {
+const listMyProducts = async (req, res) => {
     try {
-        const products = await Product.find({ seller: req.seller._id })
-            .sort({ createdAt: -1 })
-            .populate('category', 'name');
+        const products = await getSellerProducts(req.seller._id, req.query);
 
         res.status(200).json({
             success: true,
@@ -36,7 +33,7 @@ const createProduct = async (req, res) => {
             });
         }
 
-        const product = await Product.create({
+        const product = await createSellerProduct(req.seller._id, {
             name,
             category,
             sale_price,
@@ -44,7 +41,6 @@ const createProduct = async (req, res) => {
             image,
             stock,
             status: status || "in_stock",
-            seller: req.seller._id, // logged-in seller theke ashbe (auth middleware)
         });
 
         res.status(201).json({
@@ -59,27 +55,7 @@ const createProduct = async (req, res) => {
     }
 };
 
-// @desc    List the logged-in seller's own products
-// @route   GET /seller/products
-// @access  Private (Seller only)
-const listMyProducts = async (req, res) => {
-    try {
-        const products = await getSellerProducts(req.seller._id, req.query);
-
-        res.status(200).json({
-            success: true,
-            data: products,
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message,
-        });
-    }
-};
-
 module.exports = {
-    getSellerProducts,
-    createProduct,
     listMyProducts,
+    createProduct,
 };
