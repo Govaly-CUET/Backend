@@ -49,8 +49,3 @@ const reviewSchema = new mongoose.Schema(
 reviewSchema.index({ product: 1, customer: 1 }, { unique: true });
 
 module.exports = mongoose.model('Review', reviewSchema);
-<<<<<<< HEAD
-=======
-
-
->>>>>>> 057a5e7ce8162e1c37a23749e39f603fa1c493f5
