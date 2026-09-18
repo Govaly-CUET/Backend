@@ -16,4 +16,14 @@ const getSellerProducts = async (sellerId, { search } = {}) => {
     .populate('category', 'name');
 };
 
-module.exports = { getSellerProducts };
+/*
+ * Creates a new product owned by the given seller.
+ */
+const createSellerProduct = async (sellerId, productData) => {
+  return Product.create({
+    ...productData,
+    seller: sellerId,
+  });
+};
+
+module.exports = { getSellerProducts, createSellerProduct };

@@ -19,7 +19,6 @@ const productSchema = new mongoose.Schema(
     subcategory: {
       type: mongoose.Schema.Types.ObjectId,
       required: [true, 'Subcategory is required'],
-
     },
     description: {
       type: String,

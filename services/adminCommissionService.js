@@ -1,7 +1,85 @@
 const Seller = require('../models/sellerModel');
+const Product = require('../models/productModel');
 
-const getAllSellersCommission = async () => {
-  return Seller.find({}).select('shopName commission status').sort({ shopName: 1 });
+const getAllSellersCommission = async ({ status, category, sort } = {}) => {
+  const match = {};
+
+  if (status) {
+    match.status = status;
+  }
+
+  const sellers = await Seller.find(match)
+    .select('shopName commission status')
+    .sort({ shopName: 1 })
+    .lean();
+
+  const productRows = await Product.aggregate([
+    {
+      $lookup: {
+        from: 'categories',
+        localField: 'category',
+        foreignField: '_id',
+        as: 'categoryDoc',
+      },
+    },
+    { $unwind: { path: '$categoryDoc', preserveNullAndEmptyArrays: true } },
+    {
+      $group: {
+        _id: { seller: '$seller', categoryId: '$categoryDoc._id', categoryName: '$categoryDoc.name' },
+        count: { $sum: 1 },
+        inStock: { $sum: { $cond: [{ $eq: ['$status', 'in_stock'] }, 1, 0] } },
+        outOfStock: { $sum: { $cond: [{ $eq: ['$status', 'out_of_stock'] }, 1, 0] } },
+      },
+    },
+  ]);
+
+  const bySeller = {};
+
+  productRows.forEach((row) => {
+    const sellerId = row._id.seller.toString();
+
+    if (!bySeller[sellerId]) {
+      bySeller[sellerId] = {
+        total: 0,
+        inStock: 0,
+        outOfStock: 0,
+        categories: [],
+      };
+    }
+
+    bySeller[sellerId].total += row.count;
+    bySeller[sellerId].inStock += row.inStock;
+    bySeller[sellerId].outOfStock += row.outOfStock;
+    bySeller[sellerId].categories.push({
+      id: row._id.categoryId ? row._id.categoryId.toString() : null,
+      name: row._id.categoryName || 'Uncategorized',
+      count: row.count,
+    });
+  });
+
+  let result = sellers.map((seller) => ({
+    ...seller,
+    products: bySeller[seller._id.toString()] || {
+      total: 0,
+      inStock: 0,
+      outOfStock: 0,
+      categories: [],
+    },
+  }));
+
+  if (category) {
+    result = result.filter((seller) =>
+      seller.products.categories.some((c) => c.id === category)
+    );
+  }
+
+  if (sort === 'commission_asc') {
+    result.sort((a, b) => a.commission - b.commission);
+  } else if (sort === 'commission_desc') {
+    result.sort((a, b) => b.commission - a.commission);
+  }
+
+  return result;
 };
 
 const updateSellerCommission = async (id, commission) => {
