@@ -2,9 +2,14 @@ const express = require('express');
 
 const router = express.Router();
 
-const { getDashboardStats, getDashboardChartData } = require('../controllers/adminDashboardController');
+const {
+  getDashboardStats,
+  getDashboardTrendCharts,
+  getDashboardYearlyCharts,
+} = require('../controllers/adminDashboardController');
 
 router.get('/stats', getDashboardStats);
-router.get('/charts', getDashboardChartData);
+router.get('/trend-charts', getDashboardTrendCharts);
+router.get('/yearly-charts', getDashboardYearlyCharts);
 
 module.exports = router;
