@@ -41,6 +41,19 @@ const orderItemSchema = new mongoose.Schema(
  * spanning multiple sellers creates multiple Order documents, tied
  * together by a shared groupId — see the note on that field below.
  */
+const addressEntrySchema = new mongoose.Schema(
+  {
+    name: { type: String, required: true, trim: true },
+    phone: { type: String, required: true, trim: true },
+    email: { type: String, trim: true },
+    division: { type: String, required: true, trim: true },
+    district: { type: String, required: true, trim: true },
+    area: { type: String, required: true, trim: true },
+    address: { type: String, required: true, trim: true },
+  },
+  { _id: true }
+);
+
 const orderSchema = new mongoose.Schema(
   {
     orderCode: {
@@ -76,6 +89,13 @@ const orderSchema = new mongoose.Schema(
       area: { type: String, required: true, trim: true },
       address: { type: String, required: true, trim: true },
     },
+    // Alternative delivery addresses for this order. Empty until an
+    // admin adds one; then it also holds a copy of the original
+    // address. `shippingAddress` above stays the single active one.
+    addressBook: {
+      type: [addressEntrySchema],
+      default: [],
+    },
     // This seller's portion only — product price, no shipping/
     // discount lines (per the simplified design).
     amount: {
@@ -96,6 +116,15 @@ const orderSchema = new mongoose.Schema(
       enum: ['pending', 'in_progress', 'delivered', 'canceled'],
       default: 'pending',
     },
+    // Whether the seller has been paid for a delivered order. Only the
+    // admin changes it, and only once the order is delivered. Earnings
+    // below count only while this is "paid".
+    sellerPayment: {
+      type: String,
+      enum: ['pending', 'paid', 'cancelled'],
+      default: 'pending',
+    },
+    sellerPaymentAt: { type: Date },
     // Govaly/seller internal economics — never exposed to the
     // customer-facing API, admin-only.
     sellerEarning: {
@@ -113,5 +142,15 @@ const orderSchema = new mongoose.Schema(
     timestamps: true,
   }
 );
+
+// Earnings exist only once the seller payment is "paid". Enforced here so
+// no code path (checkout, seeds, scripts) can store earnings for an order
+// that has not been paid.
+orderSchema.pre('validate', function zeroUnpaidEarnings() {
+  if (this.sellerPayment !== 'paid') {
+    this.sellerEarning = 0;
+    this.govalyEarning = 0;
+  }
+});
 
 module.exports = mongoose.model('Order', orderSchema);
