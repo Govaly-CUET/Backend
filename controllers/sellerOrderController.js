@@ -1,4 +1,5 @@
 const { getOrders: getAdminOrders } = require('../services/adminOrderService');
+const { toSellerOrder } = require('../services/sellerOrderView');
 
 // @desc    List orders belonging to the authenticated seller
 // @route   GET /api/v1/seller/orders
@@ -10,7 +11,7 @@ const getOrders = async (req, res) => {
 			seller: req.seller._id,
 		});
 
-		res.status(200).json({ success: true, data: orders });
+		res.status(200).json({ success: true, data: orders.map(toSellerOrder) });
 	} catch (error) {
 		const status = error.status || 500;
 		res.status(status).json({ success: false, message: error.message });

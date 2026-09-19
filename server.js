@@ -11,6 +11,8 @@ const uploadRoutes = require('./routes/uploadRoutes');
 const customerRoutes = require('./routes/customerRoutes');
 const sellerProductRoutes = require('./routes/sellerProductRoutes');
 const sellerCategoryRoutes = require('./routes/sellerCategoryRoutes');
+const courierWebhookRoutes = require('./routes/courierWebhookRoutes');
+const { startShipmentSync } = require('./services/shipmentSyncJob');
 
 const app = express();
 
@@ -66,8 +68,10 @@ app.use('/api/v1/seller', sellerRoutes);
 app.use('/api/v1/seller/categories', sellerCategoryRoutes);
 app.use('/api/v1/upload', uploadRoutes);
 app.use('/api/v1/customer', customerRoutes);
+app.use('/api/v1/webhooks', courierWebhookRoutes);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  startShipmentSync();
 });

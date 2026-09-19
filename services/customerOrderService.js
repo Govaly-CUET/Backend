@@ -3,14 +3,23 @@ const User = require('../models/userModel');
 const Cart = require('../models/cartModel');
 const Product = require('../models/productModel');
 const Order = require('../models/orderModel');
+const Shipment = require('../models/shipmentModel');
+const {
+  customerStatus,
+  isCancellable,
+  shipmentSummary,
+  statusHistory,
+  attachShipments,
+} = require('./customerShipmentView');
 
-const statusName = (status) => status === 'canceled' ? 'Cancelled' : status === 'delivered' ? 'Delivered' : status === 'in_progress' ? 'Processing' : 'Placed';
-
-const toCustomerOrder = (order) => {
+// `shipment` is the order's Shipment document, if it has one yet.
+const toCustomerOrder = (order, shipment = null) => {
   const value = order.toObject ? order.toObject() : order;
   return {
     ...value,
-    status: statusName(value.financialStatus),
+    status: customerStatus(value, shipment),
+    cancellable: isCancellable(value, shipment),
+    shipment: shipmentSummary(value, shipment),
     subtotal: value.amount,
     deliveryInfo: {
       fullName: value.shippingAddress?.name,
@@ -95,36 +104,53 @@ const checkout = async (userId, { deliveryInfo, paymentMethod }) => {
 };
 
 const listOrders = async (userId, status) => {
-  const query = { customer: userId };
-  if (status) query.financialStatus = status === 'Cancelled' ? 'canceled' : status === 'Processing' ? 'in_progress' : status.toLowerCase();
-  const orders = await Order.find(query).populate('items.product', 'name image slug').populate('seller', 'shopName shopSlug').sort('-createdAt').lean();
-  return orders.map(toCustomerOrder);
+  const orders = await Order.find({ customer: userId }).populate('items.product', 'name image slug').populate('seller', 'shopName shopSlug').sort('-createdAt').lean();
+  const withShipments = await attachShipments(orders);
+  const customerOrders = withShipments.map(({ order, shipment }) => toCustomerOrder(order, shipment));
+
+  // The customer status comes from the shipment, so filter after mapping.
+  return status ? customerOrders.filter((order) => order.status === status) : customerOrders;
 };
 
 const getOrder = async (userId, orderId) => {
   const order = await Order.findOne({ _id: orderId, customer: userId }).populate('items.product', 'name image slug').populate('seller', 'shopName shopSlug').lean();
   if (!order) throw { status: 404, message: 'Order not found' };
-  return toCustomerOrder(order);
+  return toCustomerOrder(order, await Shipment.findOne({ order: order._id }).lean());
 };
 
 const trackOrder = async (userId, orderId) => {
   const order = await Order.findOne({ _id: orderId, customer: userId }).select('financialStatus createdAt updatedAt').lean();
   if (!order) throw { status: 404, message: 'Order not found' };
-  return { status: statusName(order.financialStatus), statusHistory: [{ status: statusName(order.financialStatus), at: order.updatedAt || order.createdAt }], updatedAt: order.updatedAt };
+  const shipment = await Shipment.findOne({ order: order._id }).lean();
+  return {
+    status: customerStatus(order, shipment),
+    statusHistory: statusHistory(order, shipment),
+    shipment: shipmentSummary(order, shipment),
+    updatedAt: shipment?.updatedAt || order.updatedAt,
+  };
 };
 
 const cancelOrder = async (userId, orderId) => {
   const order = await Order.findOne({ _id: orderId, customer: userId });
   if (!order) throw { status: 404, message: 'Order not found' };
-  if (!['pending', 'in_progress'].includes(order.financialStatus)) throw { status: 400, message: 'This order can no longer be cancelled.' };
+  const shipment = await Shipment.findOne({ order: order._id });
+  if (!isCancellable(order, shipment)) throw { status: 400, message: 'This order can no longer be cancelled.' };
   order.financialStatus = 'canceled';
   await order.save();
+
+  // Keep the shipment in step, so the admin and seller see it cancelled too.
+  if (shipment && shipment.status !== 'cancelled') {
+    shipment.status = 'cancelled';
+    shipment.history.push({ track: 'shipment', status: 'cancelled', note: 'Cancelled by the customer.', source: 'customer' });
+    await shipment.save();
+  }
+
   await Promise.all(order.items.map((item) => Product.updateOne(
     { _id: item.product },
     [{ $set: { stock: { $add: ['$stock', item.quantity] }, status: 'in_stock' } }],
     { updatePipeline: true }
   )));
-  return toCustomerOrder(order);
+  return toCustomerOrder(order, shipment);
 };
 
 module.exports = { checkout, listOrders, getOrder, trackOrder, cancelOrder };

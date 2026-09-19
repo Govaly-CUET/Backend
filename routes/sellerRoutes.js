@@ -31,6 +31,7 @@ router.get('/me', protectSeller, getSellerProfile);
 router.patch('/me', protectSeller, updateSellerProfile);
 router.get('/dashboard/stats', protectSeller, getDashboardStats);
 router.get('/orders', protectSeller, require('../controllers/sellerOrderController').getOrders);
+router.patch('/orders/:id/shipment', protectSeller, require('../controllers/sellerShipmentController').updateStage);
 router.get('/earnings', protectSeller, getEarnings);
 router.get('/reviews', protectSeller, getReviews);
 
