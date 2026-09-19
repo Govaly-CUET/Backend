@@ -2,6 +2,11 @@ const express = require('express');
 const router = express.Router();
 
 const { registerSeller, loginSeller, getSellerProfile, updateSellerProfile } = require('../controllers/sellerAuthController');
+const {
+	requestSellerOtp,
+	verifySellerForgotOtp,
+	resetSellerPassword,
+} = require('../controllers/sellerOtpAuthController');
 const { submitVerificationDocuments } = require('../controllers/sellerDocumentController');
 const { protectSeller, protectSellerAny } = require('../middleware/authMiddleware');
 const upload = require('../middleware/uploadMiddleware');
@@ -13,6 +18,9 @@ const { getReviews } = require('../controllers/sellerReviewsController');
 // Public
 router.post('/auth/register', registerSeller);
 router.post('/auth/login', loginSeller);
+router.post('/auth/otp/request', requestSellerOtp);
+router.post('/auth/forgot-password/verify-otp', verifySellerForgotOtp);
+router.post('/auth/forgot-password/reset', resetSellerPassword);
 
 // Private (any seller status — onboarding step before admin approval)
 router.post('/verification/documents', protectSellerAny, submitVerificationDocuments);

@@ -3,6 +3,11 @@ const express = require('express');
 const router = express.Router();
 
 const { loginAdmin, getMe } = require('../controllers/adminAuthController');
+const {
+  requestAdminOtp,
+  verifyAdminForgotOtp,
+  resetAdminPassword,
+} = require('../controllers/adminOtpAuthController');
 const { protectAdmin } = require('../middleware/authMiddleware');
 const { getProfile, updateProfile } = require('../controllers/adminProfileController');
 const adminCustomerRoutes = require('./adminCustomerRoutes');
@@ -26,6 +31,9 @@ const adminDashboardRoutes = require('./adminDashboardRoutes'); // here change
 
 // Public
 router.post('/auth/login', loginAdmin);
+router.post('/auth/otp/request', requestAdminOtp);
+router.post('/auth/forgot-password/verify-otp', verifyAdminForgotOtp);
+router.post('/auth/forgot-password/reset', resetAdminPassword);
 
 // Everything below requires a valid admin JWT
 router.use(protectAdmin);

@@ -1,9 +1,10 @@
 const User = require('../models/userModel');
 
 const getProfile = async (userId) => {
-  const user = await User.findById(userId).select('-password');
+  const user = await User.findById(userId);
   if (!user) throw { status: 404, message: 'User not found' };
-  return user;
+  const { password, ...profile } = user.toObject();
+  return { ...profile, hasPassword: Boolean(password) };
 };
 
 const updateProfile = async (userId, { name, phone, address, addresses, gender, DOB, image }) => {
@@ -20,7 +21,7 @@ const updateProfile = async (userId, { name, phone, address, addresses, gender, 
 
   await user.save();
   const { password, ...rest } = user.toObject();
-  return rest;
+  return { ...rest, hasPassword: Boolean(password) };
 };
 
 module.exports = { getProfile, updateProfile };

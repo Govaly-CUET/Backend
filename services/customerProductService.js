@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const Product = require('../models/productModel');
+const Seller = require('../models/sellerModel');
 const Category = require('../models/categoryModel');
 const Review = require('../models/reviewModel');
 
@@ -96,6 +97,8 @@ const resolveCategoryFilter = async (categorySlug) => {
 const listProducts = async (query) => {
   const { search, category, seller, sort, page = 1, limit = 20 } = query;
   const q = { status: 'in_stock' };
+  const suspendedSellerIds = await Seller.find({ status: 'suspended' }).distinct('_id');
+  q.seller = { $nin: suspendedSellerIds };
 
   const terms = searchTerms(search);
   if (terms.length) {
@@ -135,14 +138,16 @@ const listProducts = async (query) => {
     const catFilter = await resolveCategoryFilter(category);
     if (catFilter) Object.assign(q, catFilter);
   }
-  if (seller && mongoose.Types.ObjectId.isValid(seller)) q.seller = seller;
+  if (seller && mongoose.Types.ObjectId.isValid(seller)) {
+    q.seller = { $eq: seller, $nin: suspendedSellerIds };
+  }
 
   const pageNum = Math.max(1, Number(page) || 1);
   const lim = Math.min(60, Number(limit) || 20);
 
   const products = await Product.find(q)
     .populate('category', 'name slug')
-    .populate('seller', 'shopName shopSlug ratings')
+    .populate('seller', 'shopName shopSlug ratings status')
     .lean();
 
   const allItems = (await withReviewStats(products))
@@ -167,7 +172,7 @@ const listProducts = async (query) => {
 const getProductBySlug = async (slug) => {
   let product = await Product.findOne({ slug })
     .populate('category', 'name slug')
-    .populate('seller', 'shopName shopSlug ratings')
+    .populate('seller', 'shopName shopSlug ratings status')
     .lean();
 
   if (!product) {
@@ -175,12 +180,14 @@ const getProductBySlug = async (slug) => {
     if (mongoose.Types.ObjectId.isValid(id)) {
       product = await Product.findById(id)
         .populate('category', 'name slug')
-        .populate('seller', 'shopName shopSlug ratings')
+        .populate('seller', 'shopName shopSlug ratings status')
         .lean();
     }
   }
 
-  if (!product) throw { status: 404, message: 'Product not found' };
+  if (!product || product.seller?.status === 'suspended') {
+    throw { status: 404, message: 'Product not found' };
+  }
   return withCustomerFields((await withReviewStats([product]))[0]);
 };
 

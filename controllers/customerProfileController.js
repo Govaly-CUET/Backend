@@ -69,11 +69,14 @@ const uploadAvatar = async (req, res) => {
 // @access  Private (Customer)
 const patchPassword = async (req, res) => {
   try {
-    const { currentPassword, newPassword } = req.body;
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({ success: false, message: 'currentPassword and newPassword are required.' });
+    const { currentPassword, newPassword, confirmPassword } = req.body;
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      return res.status(400).json({ success: false, message: 'currentPassword, newPassword and confirmPassword are required.' });
     }
-    await changePassword(req.user._id, currentPassword, newPassword);
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ success: false, message: 'Passwords do not match.' });
+    }
+    await changePassword(req.user._id, currentPassword, newPassword, confirmPassword);
     res.status(200).json({ success: true, message: 'Password changed successfully.' });
   } catch (error) {
     const status = error.status || 500;

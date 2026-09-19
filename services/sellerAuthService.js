@@ -70,4 +70,13 @@ const issueSellerToken = (seller) => {
   );
 };
 
-module.exports = { registerSeller, authenticateSeller, issueSellerToken };
+const resetSellerPassword = async (email, password) => {
+  const seller = await Seller.findOne({ email: String(email).trim().toLowerCase() });
+  if (!seller) throw { status: 404, message: 'Seller account not found.' };
+  if (!password || password.length < 6) throw { status: 400, message: 'Password must be at least 6 characters long.' };
+  seller.password = await bcrypt.hash(password, await bcrypt.genSalt(10));
+  await seller.save();
+  return seller;
+};
+
+module.exports = { registerSeller, authenticateSeller, resetSellerPassword, issueSellerToken };

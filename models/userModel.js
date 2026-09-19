@@ -4,8 +4,9 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
+      default: "",
     },
 
     email: {
@@ -16,14 +17,31 @@ const userSchema = new mongoose.Schema(
       trim: true,
     },
 
+    // Password is optional because a customer can
+    // register/login using email OTP or Google.
     password: {
       type: String,
-      required: true,
+      required: false,
+      default: null,
     },
 
     phone: {
       type: String,
       default: null,
+    },
+
+    // Google authentication
+    googleId: {
+      type: String,
+      default: null,
+      sparse: true,
+      unique: true,
+    },
+
+    authProvider: {
+      type: String,
+      enum: ["email", "google"],
+      default: "email",
     },
 
     // Kept flexible so existing string addresses remain readable while new
@@ -60,25 +78,43 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
-    cartItems: [{
-      product: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Product',
-        required: true,
-      },
-      productModel: {
-        type: String,
-        default: 'Product',
-      },
-      quantity: { type: Number, min: 1, default: 1 },
-      size: { type: String, default: '' },
-      color: { type: String, default: '' },
-    }],
+    cartItems: [
+      {
+        product: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "Product",
+          required: true,
+        },
 
-    wishlist: [{
-      type: mongoose.Schema.Types.ObjectId,
-      ref: 'Product',
-    }],
+        productModel: {
+          type: String,
+          default: "Product",
+        },
+
+        quantity: {
+          type: Number,
+          min: 1,
+          default: 1,
+        },
+
+        size: {
+          type: String,
+          default: "",
+        },
+
+        color: {
+          type: String,
+          default: "",
+        },
+      },
+    ],
+
+    wishlist: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Product",
+      },
+    ],
   },
 
   {

@@ -134,7 +134,7 @@ const getAdminProducts = async (filters = {}) => {
   const products = await Product.find(match)
     .sort(sort)
     .populate('category', 'name')
-    .populate('seller', 'shopName')
+    .populate('seller', 'shopName status')
     .lean();
 
   const ratingRows = await Review.aggregate([
