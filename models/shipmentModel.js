@@ -29,28 +29,6 @@ const SHIPMENT_STATUSES = [
   'cancelled',
 ];
 
-// Shipment status drives the order's financialStatus, which in turn
-// drives the earnings split (see adminOrderService.updateOrderStatus).
-const FINANCIAL_FROM_SHIPMENT = {
-  pending: 'pending',
-  processing: 'in_progress',
-  picked_from_seller: 'in_progress',
-  in_transit: 'in_progress',
-  at_delivery_hub: 'in_progress',
-  hold: 'in_progress',
-  delivered: 'delivered',
-  cancelled: 'canceled',
-};
-
-// Orders that have no Shipment document yet show a status derived from
-// their existing financialStatus, so nothing needs migrating.
-const SHIPMENT_FROM_FINANCIAL = {
-  pending: 'pending',
-  in_progress: 'processing',
-  delivered: 'delivered',
-  canceled: 'cancelled',
-};
-
 // Once the shipment is at or past pickup, the seller's part is done.
 const PICKED_UP = ['picked_from_seller', 'in_transit', 'at_delivery_hub', 'delivered'];
 
@@ -92,11 +70,12 @@ const shipmentSchema = new mongoose.Schema(
 
 const Shipment = mongoose.model('Shipment', shipmentSchema);
 
-const defaultShipmentFor = (order) => ({
+// What an order with no Shipment document yet looks like.
+const defaultShipmentFor = () => ({
   courier: null,
   consignmentId: '',
-  sellerStatus: order.financialStatus === 'delivered' ? 'handed_over' : 'waiting',
-  status: SHIPMENT_FROM_FINANCIAL[order.financialStatus] || 'pending',
+  sellerStatus: 'waiting',
+  status: 'pending',
   history: [],
   updatedAt: null,
 });
@@ -107,7 +86,6 @@ Object.assign(Shipment, {
   SELLER_SETTABLE,
   NEEDS_COURIER,
   SHIPMENT_STATUSES,
-  FINANCIAL_FROM_SHIPMENT,
   PICKED_UP,
   defaultShipmentFor,
 });

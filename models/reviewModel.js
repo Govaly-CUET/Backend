@@ -21,7 +21,7 @@ const reviewSchema = new mongoose.Schema(
     // "Verified Buyer" true rather than just a label. The
     // create-review controller must check this order actually
     // belongs to this customer, contains this product, and has
-    // financialStatus 'delivered' before allowing the review.
+    // a delivered shipment before allowing the review.
     order: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Order',

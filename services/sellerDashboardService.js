@@ -1,4 +1,17 @@
 const Order = require('../models/orderModel');
+const { ORDER_STATUS_STAGES } = require('./orderStatusStages');
+
+// How many of a seller's orders are in one status (an order's status is its shipment's).
+const countByStatus = async (sellerId, orderStatus) => {
+  const [row] = await Order.aggregate([
+    { $match: { seller: sellerId } },
+    ...ORDER_STATUS_STAGES,
+    { $match: { orderStatus } },
+    { $count: 'total' },
+  ]);
+
+  return row?.total || 0;
+};
 
 const getSellerDashboardStats = async (sellerId) => {
   const startOfMonth = new Date();
@@ -20,28 +33,26 @@ const getSellerDashboardStats = async (sellerId) => {
   ] = await Promise.all([
     Order.aggregate([
       {
-        $match: {
-          seller: sellerId,
-          createdAt: { $gte: startOfMonth },
-          financialStatus: { $ne: 'canceled' },
-        },
+        $match: { seller: sellerId, createdAt: { $gte: startOfMonth } },
       },
+      ...ORDER_STATUS_STAGES,
+      { $match: { orderStatus: { $ne: 'canceled' } } },
       { $group: { _id: null, total: { $sum: '$amount' } } },
     ]),
-    Order.countDocuments({ seller: sellerId, financialStatus: 'pending' }),
-    Order.countDocuments({ seller: sellerId, financialStatus: 'delivered' }),
+    countByStatus(sellerId, 'pending'),
+    countByStatus(sellerId, 'delivered'),
     Order.aggregate([
-      { $match: { seller: sellerId, financialStatus: 'delivered' } },
+      { $match: { seller: sellerId } },
+      ...ORDER_STATUS_STAGES,
+      { $match: { orderStatus: 'delivered' } },
       { $group: { _id: null, total: { $sum: '$sellerEarning' } } },
     ]),
     Order.aggregate([
       {
-        $match: {
-          seller: sellerId,
-          createdAt: { $gte: sixMonthsAgo },
-          financialStatus: { $ne: 'canceled' },
-        },
+        $match: { seller: sellerId, createdAt: { $gte: sixMonthsAgo } },
       },
+      ...ORDER_STATUS_STAGES,
+      { $match: { orderStatus: { $ne: 'canceled' } } },
       {
         $group: {
           _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },
@@ -52,12 +63,10 @@ const getSellerDashboardStats = async (sellerId) => {
     ]),
     Order.aggregate([
       {
-        $match: {
-          seller: sellerId,
-          createdAt: { $gte: sixMonthsAgo },
-          financialStatus: 'delivered',
-        },
+        $match: { seller: sellerId, createdAt: { $gte: sixMonthsAgo } },
       },
+      ...ORDER_STATUS_STAGES,
+      { $match: { orderStatus: 'delivered' } },
       {
         $group: {
           _id: { year: { $year: '$createdAt' }, month: { $month: '$createdAt' } },

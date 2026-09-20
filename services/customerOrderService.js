@@ -120,7 +120,7 @@ const getOrder = async (userId, orderId) => {
 };
 
 const trackOrder = async (userId, orderId) => {
-  const order = await Order.findOne({ _id: orderId, customer: userId }).select('financialStatus createdAt updatedAt').lean();
+  const order = await Order.findOne({ _id: orderId, customer: userId }).select('createdAt updatedAt').lean();
   if (!order) throw { status: 404, message: 'Order not found' };
   const shipment = await Shipment.findOne({ order: order._id }).lean();
   return {
@@ -134,17 +134,13 @@ const trackOrder = async (userId, orderId) => {
 const cancelOrder = async (userId, orderId) => {
   const order = await Order.findOne({ _id: orderId, customer: userId });
   if (!order) throw { status: 404, message: 'Order not found' };
-  const shipment = await Shipment.findOne({ order: order._id });
+  // The order's status is its shipment's, so cancelling means cancelling
+  // the shipment (one is created first if the order has none yet).
+  const shipment = (await Shipment.findOne({ order: order._id })) || new Shipment({ order: order._id });
   if (!isCancellable(order, shipment)) throw { status: 400, message: 'This order can no longer be cancelled.' };
-  order.financialStatus = 'canceled';
-  await order.save();
-
-  // Keep the shipment in step, so the admin and seller see it cancelled too.
-  if (shipment && shipment.status !== 'cancelled') {
-    shipment.status = 'cancelled';
-    shipment.history.push({ track: 'shipment', status: 'cancelled', note: 'Cancelled by the customer.', source: 'customer' });
-    await shipment.save();
-  }
+  shipment.status = 'cancelled';
+  shipment.history.push({ track: 'shipment', status: 'cancelled', note: 'Cancelled by the customer.', source: 'customer' });
+  await shipment.save();
 
   await Promise.all(order.items.map((item) => Product.updateOne(
     { _id: item.product },

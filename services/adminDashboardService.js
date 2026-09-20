@@ -1,4 +1,5 @@
 const Order = require('../models/orderModel');
+const { ORDER_STATUS_STAGES } = require('./orderStatusStages');
 
 const STATUS_KEYS = ['pending', 'in_progress', 'delivered', 'canceled'];
 
@@ -50,9 +51,10 @@ const getOrderStats = async (period) => {
 
   const rows = await Order.aggregate([
     { $match: { createdAt: { $gte: start, $lte: end } } },
+    ...ORDER_STATUS_STAGES,
     {
       $group: {
-        _id: '$financialStatus',
+        _id: '$orderStatus',
         count: { $sum: 1 },
         amount: { $sum: '$amount' },
       },
@@ -138,7 +140,7 @@ const formatDateLabel = (date) => `${MONTH_ABBR[date.getUTCMonth()]} ${date.getU
 
 // Generic period-bucketed sum of `valueExpression` (a Mongo aggregation
 // expression, e.g. gmvExpression or '$govalyEarning').
-//   excludeCanceled: true  -> "Net" variants (skip financialStatus: 'canceled')
+//   excludeCanceled: true  -> "Net" variants (skip orders whose shipment is cancelled)
 //   withOrderCount: true   -> also returns an `orders` count per bucket,
 //                             used for the "Order: N" chip on GMV charts
 //
@@ -151,7 +153,10 @@ const getBucketedSeries = async (period, valueExpression, { excludeCanceled = fa
   const { start, end } = getDateRange(period);
 
   const baseMatch = { createdAt: { $gte: start, $lte: end } };
-  if (excludeCanceled) baseMatch.financialStatus = { $ne: 'canceled' };
+  // Only "Net" variants need the shipment status, so only they pay for the lookup.
+  const statusStages = excludeCanceled
+    ? [...ORDER_STATUS_STAGES, { $match: { orderStatus: { $ne: 'canceled' } } }]
+    : [];
 
   if (period === 'today') {
     const groupStage = { _id: '$hour', value: { $sum: '$value' } };
@@ -159,6 +164,7 @@ const getBucketedSeries = async (period, valueExpression, { excludeCanceled = fa
 
     const rows = await Order.aggregate([
       { $match: baseMatch },
+      ...statusStages,
       { $project: { hour: { $hour: shiftToDhaka }, value: valueExpression } },
       { $group: groupStage },
     ]);
@@ -183,6 +189,7 @@ const getBucketedSeries = async (period, valueExpression, { excludeCanceled = fa
 
   const rows = await Order.aggregate([
     { $match: baseMatch },
+    ...statusStages,
     { $project: { dayKey: { $dateToString: { format: '%Y-%m-%d', date: shiftToDhaka } }, value: valueExpression } },
     { $group: groupStage },
   ]);

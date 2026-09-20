@@ -37,7 +37,7 @@ const shipmentOf = (order, shipment) => shipment || Shipment.defaultShipmentFor(
 const customerStatus = (order, shipment) => {
   const current = shipmentOf(order, shipment);
 
-  if (order.financialStatus === 'canceled' || current.status === 'cancelled') return 'Cancelled';
+  if (current.status === 'cancelled') return 'Cancelled';
   if (current.status === 'delivered') return 'Delivered';
   if (SHIPPED.includes(current.status)) return 'Shipped';
 
@@ -65,9 +65,9 @@ const stageText = (order, shipment) => {
 const isCancellable = (order, shipment) => {
   const current = shipmentOf(order, shipment);
 
-  if (!['pending', 'in_progress'].includes(order.financialStatus)) return false;
+  if (!['pending', 'processing'].includes(current.status)) return false;
 
-  return !current.consignmentId && !Shipment.PICKED_UP.includes(current.status);
+  return !current.consignmentId;
 };
 
 const shipmentSummary = (order, shipment) => {

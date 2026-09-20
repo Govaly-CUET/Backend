@@ -1,6 +1,7 @@
 const Seller = require('../models/sellerModel');
 const Product = require('../models/productModel');
 const Order = require('../models/orderModel');
+const { ORDER_STATUS_STAGES } = require('./orderStatusStages');
 
 /*
  * One combined "Sellers" overview row per seller: their basic profile
@@ -62,9 +63,10 @@ const getSellersOverview = async ({ status, category, rating } = {}) => {
   });
 
   const orderRows = await Order.aggregate([
+    ...ORDER_STATUS_STAGES,
     {
       $group: {
-        _id: { seller: '$seller', status: '$financialStatus' },
+        _id: { seller: '$seller', status: '$orderStatus' },
         count: { $sum: 1 },
         amount: { $sum: '$amount' },
         sellerEarning: { $sum: '$sellerEarning' },

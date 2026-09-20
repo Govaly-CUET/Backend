@@ -5,7 +5,6 @@ const router = express.Router();
 const {
   listOrders,
   getOrder,
-  updateStatus,
   updatePayment,
   updateAddress,
   addAddress,
@@ -22,7 +21,6 @@ const {
 router.get('/', listOrders);
 router.get('/courier/config', courierConfig); // before '/:id'
 router.get('/:id', getOrder);
-router.patch('/:id/status', updateStatus);
 router.patch('/:id/payment', updatePayment);
 router.patch('/:id/address', updateAddress);
 router.post('/:id/addresses', addAddress);

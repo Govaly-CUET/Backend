@@ -1,4 +1,5 @@
 const Order = require('../models/orderModel');
+const Shipment = require('../models/shipmentModel');
 const Review = require('../models/reviewModel');
 const Product = require('../models/productModel');
 
@@ -17,13 +18,14 @@ const submitReview = async (userId, productId, { rating, comment, orderId }) => 
   }
 
   // Must have a delivered order containing this product to be eligible.
-  // Order stores this as the lowercase `financialStatus` enum.
+  // An order is delivered when its shipment is.
+  const deliveredOrderIds = await Shipment.find({ status: 'delivered' }).distinct('order');
   const orderQuery = {
     customer: userId,
     'items.product': productId,
-    financialStatus: 'delivered',
+    _id: { $in: deliveredOrderIds },
   };
-  if (orderId) orderQuery._id = orderId;
+  if (orderId) orderQuery._id = { $in: deliveredOrderIds.filter((id) => String(id) === String(orderId)) };
   const order = await Order.findOne(orderQuery).sort('-createdAt');
   if (!order) {
     throw { status: 403, message: 'You can only review products from a delivered order.' };

@@ -27,10 +27,6 @@ const updateSellerStage = async (sellerId, orderId, stage) => {
     throw { status: 404, message: 'Order not found.' };
   }
 
-  if (['delivered', 'canceled'].includes(order.financialStatus)) {
-    throw { status: 409, message: 'This order is already finished.' };
-  }
-
   let shipment = await Shipment.findOne({ order: order._id });
 
   if (!shipment) {
@@ -40,6 +36,10 @@ const updateSellerStage = async (sellerId, orderId, stage) => {
       sellerStatus: defaults.sellerStatus,
       status: defaults.status,
     });
+  }
+
+  if (['delivered', 'cancelled'].includes(shipment.status)) {
+    throw { status: 409, message: 'This order is already finished.' };
   }
 
   if (shipment.status === 'pending') {

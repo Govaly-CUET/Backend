@@ -1,6 +1,6 @@
 const Order = require('../models/orderModel');
 const Shipment = require('../models/shipmentModel');
-const { updateOrderStatus, getOrderById } = require('./adminOrderService');
+const { getOrderById } = require('./adminOrderService');
 const { getCourier, getCourierInfo, pathaoMode } = require('./couriers');
 const { normalizeKey, mapKey, parseWebhookBody } = require('./couriers/pathaoStatus');
 
@@ -71,15 +71,6 @@ const applyStatus = (shipment, status, { note = '', source = 'admin' } = {}) => 
   return true;
 };
 
-// Order financialStatus (and so the earnings split) follows the shipment.
-const syncFinancial = async (order, shipment) => {
-  const target = Shipment.FINANCIAL_FROM_SHIPMENT[shipment.status];
-
-  if (order.financialStatus !== target) {
-    await updateOrderStatus(order._id, target);
-  }
-};
-
 /*
  * Manual update of one order's shipment by the admin: the status and a note.
  *
@@ -140,8 +131,6 @@ const updateShipment = async (orderId, input = {}) => {
     await shipment.save();
   }
 
-  await syncFinancial(order, shipment);
-
   return getOrderById(order._id);
 };
 
@@ -151,10 +140,6 @@ const updateShipment = async (orderId, input = {}) => {
  */
 const createCourierShipment = async (orderId) => {
   const order = await findOrderOrThrow(orderId);
-
-  if (['delivered', 'canceled'].includes(order.financialStatus)) {
-    throw { status: 409, message: 'This order is already finished.' };
-  }
 
   const key = String(order._id);
 
@@ -166,6 +151,10 @@ const createCourierShipment = async (orderId) => {
 
   try {
     const shipment = await loadShipment(order);
+
+    if (FINISHED_SHIPMENT.includes(shipment.status)) {
+      throw { status: 409, message: 'This order is already finished.' };
+    }
 
     if (shipment.consignmentId) {
       throw { status: 409, message: 'This order already has a consignment ID.' };
@@ -202,7 +191,6 @@ const createCourierShipment = async (orderId) => {
     });
 
     await shipment.save();
-    await syncFinancial(order, shipment);
   } finally {
     booking.delete(key);
   }
@@ -250,10 +238,6 @@ const commitCourierUpdate = async (shipment, key) => {
 
   if (changed) {
     await shipment.save();
-  }
-
-  if (order) {
-    await syncFinancial(order, shipment);
   }
 
   return changed;

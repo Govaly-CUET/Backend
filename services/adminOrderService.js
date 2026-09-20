@@ -2,7 +2,6 @@ const Order = require('../models/orderModel');
 const Seller = require('../models/sellerModel');
 const Shipment = require('../models/shipmentModel');
 
-const VALID_STATUSES = ['pending', 'in_progress', 'delivered', 'canceled'];
 const PAYMENT_STATUSES = ['pending', 'paid', 'cancelled'];
 
 /*
@@ -27,7 +26,7 @@ const withPaymentRule = (order) => {
 };
 
 // Adds a `shipment` object to each order: the real Shipment document if
-// one exists, otherwise defaults derived from the order's financialStatus.
+// one exists, otherwise the defaults (Pending, seller Waiting).
 const attachShipments = async (orders) => {
   const shipments = await Shipment.find({
     order: { $in: orders.map((order) => order._id) },
@@ -49,7 +48,6 @@ const attachShipment = async (order) => (await attachShipments([order]))[0];
 
 /*
  * Lists orders, newest first. Every filter is optional:
- *   - status: one financialStatus value
  *   - shipment: one shipment status (the Shipment column)
  *   - payment: "not_delivered" | pending | paid | cancelled (the Seller Payment column)
  *   - seller: one seller id
@@ -57,7 +55,6 @@ const attachShipment = async (order) => (await attachShipments([order]))[0];
  *   - dateStart / dateEnd: inclusive createdAt range (YYYY-MM-DD)
  */
 const getOrders = async ({
-  status,
   shipment,
   payment,
   seller,
@@ -69,27 +66,14 @@ const getOrders = async ({
 } = {}) => {
   const match = {};
 
-  if (status) {
-    if (!VALID_STATUSES.includes(status)) {
-      throw { status: 400, message: 'Invalid status filter.' };
-    }
-    match.financialStatus = status;
-  }
-
   if (shipment && !Shipment.SHIPMENT_STATUSES.includes(shipment)) {
     throw { status: 400, message: 'Invalid shipment filter.' };
   }
 
   // The Seller Payment column reads "Not delivered yet" until delivery,
   // and only then shows the admin's Pending / Paid / Cancelled choice.
-  if (payment === 'not_delivered') {
-    match.financialStatus = { $ne: 'delivered' };
-  } else if (payment) {
-    if (!PAYMENT_STATUSES.includes(payment)) {
-      throw { status: 400, message: 'Invalid seller payment filter.' };
-    }
-    match.financialStatus = 'delivered';
-    match.sellerPayment = payment;
+  if (payment && payment !== 'not_delivered' && !PAYMENT_STATUSES.includes(payment)) {
+    throw { status: 400, message: 'Invalid seller payment filter.' };
   }
 
   if (seller) {
@@ -129,9 +113,16 @@ const getOrders = async ({
 
   const withShipments = await attachShipments(orders);
 
-  // Orders without a shipment document get a derived status, so this has
-  // to look at the attached shipment rather than query the collection.
-  return shipment ? withShipments.filter((order) => order.shipment.status === shipment) : withShipments;
+  // An order's status is its shipment's, and orders without a shipment
+  // document get the defaults, so these filter the attached shipment.
+  return withShipments.filter((order) => {
+    if (shipment && order.shipment.status !== shipment) return false;
+
+    if (payment === 'not_delivered') return order.shipment.status !== 'delivered';
+    if (payment) return order.shipment.status === 'delivered' && order.sellerPayment === payment;
+
+    return true;
+  });
 };
 
 const getOrderById = async (id) => {
@@ -146,28 +137,6 @@ const getOrderById = async (id) => {
 
   return attachShipment(order);
 };
-
-const updateOrderStatus = async (id, status) => {
-  if (!VALID_STATUSES.includes(status)) {
-    throw { status: 400, message: 'Invalid status. Must be pending, in_progress, delivered, or canceled.' };
-  }
-
-  const order = await Order.findByIdAndUpdate(
-    id,
-    { financialStatus: status },
-    { new: true, runValidators: true }
-  )
-    .populate('customer', 'name email phone')
-    .populate('seller', 'shopName')
-    .populate('items.product', 'name');
-
-  if (!order) {
-    throw { status: 404, message: 'Order not found.' };
-  }
-
-  return attachShipment(order);
-};
-
 
 /*
  * Seller payment, set by the admin once an order is delivered.
@@ -188,7 +157,9 @@ const updateSellerPayment = async (id, status) => {
     throw { status: 404, message: 'Order not found.' };
   }
 
-  if (order.financialStatus !== 'delivered') {
+  const shipment = await Shipment.findOne({ order: order._id }).lean();
+
+  if (shipment?.status !== 'delivered') {
     throw { status: 409, message: 'The seller payment can only be set after the order is delivered.' };
   }
 
@@ -305,7 +276,6 @@ const selectOrderAddress = async (id, addressId) => {
 module.exports = {
   getOrders,
   getOrderById,
-  updateOrderStatus,
   updateSellerPayment,
   updateShippingAddress,
   addOrderAddress,
