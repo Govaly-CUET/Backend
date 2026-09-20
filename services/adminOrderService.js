@@ -15,6 +15,17 @@ const computeEarnings = (amount, commissionPct) => {
   return { govalyEarning, sellerEarning };
 };
 
+// Earnings exist only once the seller payment is "paid". The model enforces
+// this when it saves, but an order written by an older copy of the backend
+// can still carry an amount, so what leaves the API is checked as well.
+const withPaymentRule = (order) => {
+  const sellerPayment = order.sellerPayment || 'pending';
+
+  return sellerPayment === 'paid'
+    ? { ...order, sellerPayment }
+    : { ...order, sellerPayment, sellerEarning: 0, govalyEarning: 0 };
+};
+
 // Adds a `shipment` object to each order: the real Shipment document if
 // one exists, otherwise defaults derived from the order's financialStatus.
 const attachShipments = async (orders) => {
@@ -28,7 +39,7 @@ const attachShipments = async (orders) => {
     const plain = typeof order.toObject === 'function' ? order.toObject() : order;
 
     return {
-      ...plain,
+      ...withPaymentRule(plain),
       shipment: byOrder.get(String(plain._id)) || Shipment.defaultShipmentFor(plain),
     };
   });

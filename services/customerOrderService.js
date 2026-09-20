@@ -83,7 +83,8 @@ const checkout = async (userId, { deliveryInfo, paymentMethod }) => {
       paymentMethod: String(paymentMethod || 'cod').toUpperCase() === 'COD' ? 'COD' : String(paymentMethod).toUpperCase(),
       amount,
       items: sellerItems.map(({ seller: ignored, ...item }) => item),
-      sellerEarning: amount,
+      // Earnings stay 0 until the admin marks the seller payment "paid".
+      sellerEarning: 0,
       govalyEarning: 0,
     });
     orders.push(order);

@@ -111,11 +111,11 @@ const orderSchema = new mongoose.Schema(
         message: 'An order needs at least one item.',
       },
     },
-    financialStatus: {
-      type: String,
-      enum: ['pending', 'in_progress', 'delivered', 'canceled'],
-      default: 'pending',
-    },
+    // financialStatus: {
+    //   type: String,
+    //   enum: ['pending', 'in_progress', 'delivered', 'canceled'],
+    //   default: 'pending',
+    // },
     // Whether the seller has been paid for a delivered order. Only the
     // admin changes it, and only once the order is delivered. Earnings
     // below count only while this is "paid".
