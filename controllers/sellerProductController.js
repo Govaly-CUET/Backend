@@ -24,18 +24,19 @@ const listMyProducts = async (req, res) => {
 // @access  Private (Seller only)
 const createProduct = async (req, res) => {
     try {
-        const { name, category, sale_price, description, image, stock, status } = req.body;
+        const { name, category, subcategory, sale_price, description, image, stock, status } = req.body;
 
-        if (!name || !category || !sale_price || !description || !image || stock === undefined) {
+        if (!name || !category || !subcategory || !sale_price || !description || !image || stock === undefined) {
             return res.status(400).json({
                 success: false,
-                message: "Please provide all required fields: name, category, sale_price, description, image, stock",
+                message: "Please provide all required fields: name, category, subcategory, sale_price, description, image, stock",
             });
         }
 
         const product = await createSellerProduct(req.seller._id, {
             name,
             category,
+            subcategory,
             sale_price,
             description,
             image,
