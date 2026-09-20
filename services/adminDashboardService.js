@@ -84,11 +84,25 @@ const getOrderStats = async (period) => {
 };
 
 /* ------------------------------------------------------------------ */
-/*  Trend charts — GMV, Govaly revenue, vendor earning.                 */
-/*  Granularity follows the same "period" as the stat cards:            */
+/*  Trend charts — GMV, Net GMV, Govaly Revenue, Net Govaly Revenue,    */
+/*  Seller Earning. All five share the same period-based granularity:  */
 /*    today  -> 24 hourly buckets ("12 AM", "1 AM", ... "11 PM")        */
 /*    week   -> 7 daily buckets, labeled by weekday ("Sun", "Mon", ...) */
 /*    month  -> 30 daily buckets, labeled by date ("Sep 1", "Sep 2", ..)*/
+/*                                                                       */
+/*  Definitions:                                                        */
+/*    GMV                = merchandise value across ALL orders, counted */
+/*                         as soon as the order is placed — not gated   */
+/*                         on shipment/payment status                   */
+/*    Net GMV            = GMV minus the GMV of cancelled orders        */
+/*    Govaly Revenue     = sum of govalyEarning as stored on ALL orders */
+/*                         (the order model itself already zeroes this  */
+/*                         out until sellerPayment = "paid", so this    */
+/*                         naturally only counts paid orders — no extra */
+/*                         filter needed here)                          */
+/*    Net Govaly Revenue = Govaly Revenue minus cancelled orders' share */
+/*    Seller Earning     = sum of sellerEarning as stored on ALL orders */
+/*                         (same zeroing logic as govalyEarning above)  */
 /* ------------------------------------------------------------------ */
 
 const gmvExpression = {
@@ -122,154 +136,93 @@ const enumerateDhakaDays = (start, end) => {
 
 const formatDateLabel = (date) => `${MONTH_ABBR[date.getUTCMonth()]} ${date.getUTCDate()}`;
 
-// Runs one aggregation for a given value expression (GMV / revenue /
-// vendor earning) and buckets it according to the period's granularity.
-const getTrendBuckets = async (period, valueExpression) => {
+// Generic period-bucketed sum of `valueExpression` (a Mongo aggregation
+// expression, e.g. gmvExpression or '$govalyEarning').
+//   excludeCanceled: true  -> "Net" variants (skip financialStatus: 'canceled')
+//   withOrderCount: true   -> also returns an `orders` count per bucket,
+//                             used for the "Order: N" chip on GMV charts
+//
+// No sellerPayment filter here: GMV counts an order as soon as it's
+// placed, regardless of shipment/payment status. govalyEarning and
+// sellerEarning are summed as stored — the order model's own
+// pre('validate') hook already zeroes those fields out until
+// sellerPayment = "paid", so unpaid orders contribute 0 automatically.
+const getBucketedSeries = async (period, valueExpression, { excludeCanceled = false, withOrderCount = false } = {}) => {
   const { start, end } = getDateRange(period);
 
+  const baseMatch = { createdAt: { $gte: start, $lte: end } };
+  if (excludeCanceled) baseMatch.financialStatus = { $ne: 'canceled' };
+
   if (period === 'today') {
+    const groupStage = { _id: '$hour', value: { $sum: '$value' } };
+    if (withOrderCount) groupStage.orders = { $sum: 1 };
+
     const rows = await Order.aggregate([
-      { $match: { createdAt: { $gte: start, $lte: end }, financialStatus: { $ne: 'canceled' } } },
+      { $match: baseMatch },
       { $project: { hour: { $hour: shiftToDhaka }, value: valueExpression } },
-      { $group: { _id: '$hour', value: { $sum: '$value' } } },
+      { $group: groupStage },
     ]);
 
     const byHour = {};
     rows.forEach((r) => {
-      byHour[r._id] = r.value;
+      byHour[r._id] = r;
     });
 
-    return HOUR_LABELS.map((label, hour) => ({ label, value: byHour[hour] || 0 }));
+    return HOUR_LABELS.map((label, hour) => {
+      const row = byHour[hour];
+      const point = { label, value: row?.value || 0 };
+      if (withOrderCount) point.orders = row?.orders || 0;
+      return point;
+    });
   }
 
   // week / month — one bucket per calendar day, oldest to newest.
   const days = enumerateDhakaDays(start, end);
+  const groupStage = { _id: '$dayKey', value: { $sum: '$value' } };
+  if (withOrderCount) groupStage.orders = { $sum: 1 };
 
   const rows = await Order.aggregate([
-    { $match: { createdAt: { $gte: start, $lte: end }, financialStatus: { $ne: 'canceled' } } },
+    { $match: baseMatch },
     { $project: { dayKey: { $dateToString: { format: '%Y-%m-%d', date: shiftToDhaka } }, value: valueExpression } },
-    { $group: { _id: '$dayKey', value: { $sum: '$value' } } },
+    { $group: groupStage },
   ]);
 
   const byDay = {};
   rows.forEach((r) => {
-    byDay[r._id] = r.value;
+    byDay[r._id] = r;
   });
 
-  return days.map(({ key, date }) => ({
-    label: period === 'week' ? WEEKDAY_LABELS[date.getUTCDay()] : formatDateLabel(date),
-    value: byDay[key] || 0,
-  }));
-};
-
-// GMV trend also carries an order count per bucket, for the "Order: N"
-// chip shown above the GMV chart.
-const getGmvTrend = async (period) => {
-  const { start, end } = getDateRange(period);
-
-  if (period === 'today') {
-    const rows = await Order.aggregate([
-      { $match: { createdAt: { $gte: start, $lte: end }, financialStatus: { $ne: 'canceled' } } },
-      { $project: { hour: { $hour: shiftToDhaka }, gmv: gmvExpression } },
-      { $group: { _id: '$hour', value: { $sum: '$gmv' }, orders: { $sum: 1 } } },
-    ]);
-    const byHour = {};
-    rows.forEach((r) => {
-      byHour[r._id] = { value: r.value, orders: r.orders };
-    });
-    return HOUR_LABELS.map((label, hour) => ({
-      label,
-      value: byHour[hour]?.value || 0,
-      orders: byHour[hour]?.orders || 0,
-    }));
-  }
-
-  const days = enumerateDhakaDays(start, end);
-  const rows = await Order.aggregate([
-    { $match: { createdAt: { $gte: start, $lte: end }, financialStatus: { $ne: 'canceled' } } },
-    { $project: { dayKey: { $dateToString: { format: '%Y-%m-%d', date: shiftToDhaka } }, gmv: gmvExpression } },
-    { $group: { _id: '$dayKey', value: { $sum: '$gmv' }, orders: { $sum: 1 } } },
-  ]);
-  const byDay = {};
-  rows.forEach((r) => {
-    byDay[r._id] = { value: r.value, orders: r.orders };
+  return days.map(({ key, date }) => {
+    const row = byDay[key];
+    const point = {
+      label: period === 'week' ? WEEKDAY_LABELS[date.getUTCDay()] : formatDateLabel(date),
+      value: row?.value || 0,
+    };
+    if (withOrderCount) point.orders = row?.orders || 0;
+    return point;
   });
-
-  return days.map(({ key, date }) => ({
-    label: period === 'week' ? WEEKDAY_LABELS[date.getUTCDay()] : formatDateLabel(date),
-    value: byDay[key]?.value || 0,
-    orders: byDay[key]?.orders || 0,
-  }));
 };
 
-const getRevenueTrend = (period) => getTrendBuckets(period, '$govalyEarning');
-const getVendorEarningTrend = (period) => getTrendBuckets(period, '$sellerEarning');
+const getGmvTrend = (period) => getBucketedSeries(period, gmvExpression, { excludeCanceled: false, withOrderCount: true });
+const getNetGmvTrend = (period) => getBucketedSeries(period, gmvExpression, { excludeCanceled: true, withOrderCount: true });
+const getRevenueTrend = (period) => getBucketedSeries(period, '$govalyEarning', { excludeCanceled: false });
+const getNetRevenueTrend = (period) => getBucketedSeries(period, '$govalyEarning', { excludeCanceled: true });
+const getSellerEarningTrend = (period) => getBucketedSeries(period, '$sellerEarning', { excludeCanceled: false });
 
-// @desc  The three period-scoped trend charts, fetched together.
+// @desc  All five period-scoped trend charts, fetched together.
 const getTrendCharts = async (period) => {
-  const [gmvTrend, revenueTrend, vendorEarningTrend] = await Promise.all([
+  const [gmvTrend, netGmvTrend, revenueTrend, netRevenueTrend, sellerEarningTrend] = await Promise.all([
     getGmvTrend(period),
+    getNetGmvTrend(period),
     getRevenueTrend(period),
-    getVendorEarningTrend(period),
+    getNetRevenueTrend(period),
+    getSellerEarningTrend(period),
   ]);
 
-  return { gmvTrend, revenueTrend, vendorEarningTrend };
-};
-
-/* ------------------------------------------------------------------ */
-/*  Yearly charts — Net GMV / Net Govaly revenue. These are NOT        */
-/*  period-scoped; they always show one point per calendar year.       */
-/* ------------------------------------------------------------------ */
-
-const fillYears = (rowsByYear) => {
-  const years = Object.keys(rowsByYear).map(Number);
-  if (years.length === 0) return [];
-  const minYear = Math.min(...years);
-  const maxYear = Math.max(...years);
-
-  const result = [];
-  for (let y = minYear; y <= maxYear; y++) {
-    result.push({ label: String(y), value: rowsByYear[y] || 0 });
-  }
-  return result;
-};
-
-const getGmvYearly = async () => {
-  const rows = await Order.aggregate([
-    { $match: { financialStatus: { $ne: 'canceled' } } },
-    { $project: { year: { $year: '$createdAt' }, orderGmv: gmvExpression } },
-    { $group: { _id: '$year', value: { $sum: '$orderGmv' } } },
-  ]);
-
-  const byYear = {};
-  rows.forEach((r) => {
-    byYear[r._id] = r.value;
-  });
-
-  return fillYears(byYear);
-};
-
-const getRevenueYearly = async () => {
-  const rows = await Order.aggregate([
-    { $match: { financialStatus: { $ne: 'canceled' } } },
-    { $group: { _id: { $year: '$createdAt' }, value: { $sum: '$govalyEarning' } } },
-  ]);
-
-  const byYear = {};
-  rows.forEach((r) => {
-    byYear[r._id] = r.value;
-  });
-
-  return fillYears(byYear);
-};
-
-const getYearlyCharts = async () => {
-  const [gmvYearly, revenueYearly] = await Promise.all([getGmvYearly(), getRevenueYearly()]);
-  return { gmvYearly, revenueYearly };
+  return { gmvTrend, netGmvTrend, revenueTrend, netRevenueTrend, sellerEarningTrend };
 };
 
 module.exports = {
   getOrderStats,
   getTrendCharts,
-  getYearlyCharts,
 };
