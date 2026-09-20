@@ -1,4 +1,4 @@
-const { getOrderStats, getTrendCharts, getYearlyCharts } = require('../services/adminDashboardService');
+const { getOrderStats, getTrendCharts } = require('../services/adminDashboardService');
 
 const VALID_PERIODS = ['today', 'week', 'month'];
 
@@ -17,10 +17,10 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
-// @desc    GMV / Govaly revenue / vendor earning trend charts. These
-//          follow the SAME period as the stat cards: today -> hourly,
-//          week -> by weekday, month -> by date. Refetch whenever the
-//          period dropdown changes.
+// @desc    GMV, Net GMV, Govaly Revenue, Net Govaly Revenue and Seller
+//          Earning trend charts — all five share the stat cards' period
+//          and its granularity (today -> hourly, week -> by weekday,
+//          month -> by date). Refetch whenever the period changes.
 // @route   GET /api/v1/admin/dashboard/trend-charts?period=today|week|month
 // @access  Private (Admin)
 const getDashboardTrendCharts = async (req, res) => {
@@ -33,17 +33,4 @@ const getDashboardTrendCharts = async (req, res) => {
   }
 };
 
-// @desc    Net GMV / Net Govaly revenue — one point per calendar year.
-//          NOT period-scoped, so fetch once and cache on the frontend.
-// @route   GET /api/v1/admin/dashboard/yearly-charts
-// @access  Private (Admin)
-const getDashboardYearlyCharts = async (req, res) => {
-  try {
-    const charts = await getYearlyCharts();
-    res.status(200).json({ success: true, data: charts });
-  } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-module.exports = { getDashboardStats, getDashboardTrendCharts, getDashboardYearlyCharts };
+module.exports = { getDashboardStats, getDashboardTrendCharts };
