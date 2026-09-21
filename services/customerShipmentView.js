@@ -72,10 +72,11 @@ const isCancellable = (order, shipment) => {
 
 const shipmentSummary = (order, shipment) => {
   const current = shipmentOf(order, shipment);
+  const consignmentId = current.consignmentId == null ? '' : String(current.consignmentId).trim();
 
   return {
     courier: current.courier || null,
-    consignmentId: current.consignmentId || '',
+    consignmentId,
     stage: stageText(order, shipment),
   };
 };
