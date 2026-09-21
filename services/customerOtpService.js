@@ -1,5 +1,5 @@
 const crypto = require('crypto');
-const CustomerOTP = require('../models/customerOtpModel');
+const OTP = require('../models/otpModel');
 const { sendOtpEmail } = require('./customerEmailService');
 
 const OTP_EXPIRY_MINUTES = 30;
@@ -66,7 +66,7 @@ const requestCustomerOtp = async (email, purpose) => {
     };
   }
 
-  const existingOtp = await CustomerOTP.findOne({
+  const existingOtp = await OTP.findOne({
     email,
     purpose,
   });
@@ -100,7 +100,7 @@ const requestCustomerOtp = async (email, purpose) => {
   /*
    * Save the OTP first.
    */
-  await CustomerOTP.findOneAndUpdate(
+  await OTP.findOneAndUpdate(
     {
       email,
       purpose,
@@ -129,7 +129,7 @@ const requestCustomerOtp = async (email, purpose) => {
   try {
     await sendOtpEmail(email, otp, purpose);
   } catch (error) {
-    await CustomerOTP.deleteOne({
+    await OTP.deleteOne({
       email,
       purpose,
     });
@@ -163,7 +163,7 @@ const verifyCustomerOtp = async (email, purpose, otp) => {
     };
   }
 
-  const record = await CustomerOTP.findOne({
+  const record = await OTP.findOne({
     email,
     purpose,
   });
@@ -179,7 +179,7 @@ const verifyCustomerOtp = async (email, purpose, otp) => {
    * Check expiration.
    */
   if (record.expiresAt.getTime() < Date.now()) {
-    await CustomerOTP.deleteOne({
+    await OTP.deleteOne({
       _id: record._id,
     });
 
@@ -193,7 +193,7 @@ const verifyCustomerOtp = async (email, purpose, otp) => {
    * Maximum verification attempts.
    */
   if (record.attempts >= MAX_ATTEMPTS) {
-    await CustomerOTP.deleteOne({
+    await OTP.deleteOne({
       _id: record._id,
     });
 
@@ -235,7 +235,7 @@ const verifyCustomerOtp = async (email, purpose, otp) => {
    * For forgot-password, the controller will create a temporary
    * password-reset token immediately after verification.
    */
-  await CustomerOTP.deleteOne({
+  await OTP.deleteOne({
     _id: record._id,
   });
 
@@ -272,7 +272,7 @@ const createPasswordResetToken = async (email) => {
    * Reuse the forgot-password OTP document as the temporary
    * reset-token record.
    */
-  await CustomerOTP.findOneAndUpdate(
+  await OTP.findOneAndUpdate(
     {
       email,
       purpose: 'forgot-password',
@@ -315,7 +315,7 @@ const verifyAndConsumePasswordResetToken = async (
     };
   }
 
-  const record = await CustomerOTP.findOne({
+  const record = await OTP.findOne({
     email,
     purpose: 'forgot-password',
   });
@@ -332,7 +332,7 @@ const verifyAndConsumePasswordResetToken = async (
    * Check expiration.
    */
   if (record.expiresAt.getTime() < Date.now()) {
-    await CustomerOTP.deleteOne({
+    await OTP.deleteOne({
       _id: record._id,
     });
 
@@ -357,7 +357,7 @@ const verifyAndConsumePasswordResetToken = async (
    *
    * This makes the reset token single-use.
    */
-  await CustomerOTP.deleteOne({
+  await OTP.deleteOne({
     _id: record._id,
   });
 

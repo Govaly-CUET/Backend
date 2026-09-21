@@ -82,20 +82,32 @@ const resolveCategoryFilter = async (categorySlug) => {
   if (!categorySlug) return null;
   if (mongoose.Types.ObjectId.isValid(categorySlug)) return { category: categorySlug };
 
+  const normalizedCategory = slugify(categorySlug);
   const categories = await Category.find().lean();
-  const parent = categories.find((item) => item.slug === categorySlug || slugify(item.name) === categorySlug);
+  const parent = categories.find((item) => item.slug === categorySlug || slugify(item.name) === normalizedCategory);
   if (parent) return { category: parent._id };
 
-  const owner = categories.find((item) => (item.subcategory || []).some((subcategory) => slugify(subcategory.name) === categorySlug));
+  const owner = categories.find((item) => (item.subcategory || []).some((subcategory) => slugify(subcategory.name) === normalizedCategory));
   if (owner) {
-    const sub = owner.subcategory.find((item) => slugify(item.name) === categorySlug);
+    const sub = owner.subcategory.find((item) => slugify(item.name) === normalizedCategory);
     return { category: owner._id, subcategory: sub?._id };
   }
   return { category: null }; // no match — return nothing rather than everything
 };
 
 const listProducts = async (query) => {
-  const { search, category, seller, sort, page = 1, limit = 20 } = query;
+  const {
+    search,
+    category,
+    subcategory,
+    seller,
+    min,
+    max,
+    size,
+    sort,
+    page = 1,
+    limit = 20,
+  } = query;
   const q = { status: 'in_stock' };
   const suspendedSellerIds = await Seller.find({ status: 'suspended' }).distinct('_id');
   q.seller = { $nin: suspendedSellerIds };
@@ -138,8 +150,19 @@ const listProducts = async (query) => {
     const catFilter = await resolveCategoryFilter(category);
     if (catFilter) Object.assign(q, catFilter);
   }
+  if (subcategory && mongoose.Types.ObjectId.isValid(subcategory)) {
+    q.subcategory = subcategory;
+  }
   if (seller && mongoose.Types.ObjectId.isValid(seller)) {
     q.seller = { $eq: seller, $nin: suspendedSellerIds };
+  }
+  if (min || max) {
+    q.sale_price = {};
+    if (Number.isFinite(Number(min))) q.sale_price.$gte = Number(min);
+    if (Number.isFinite(Number(max))) q.sale_price.$lte = Number(max);
+  }
+  if (size) {
+    q.sizes = size;
   }
 
   const pageNum = Math.max(1, Number(page) || 1);

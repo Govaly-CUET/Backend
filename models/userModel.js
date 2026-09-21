@@ -33,9 +33,7 @@ const userSchema = new mongoose.Schema(
     // Google authentication
     googleId: {
       type: String,
-      default: null,
-      sparse: true,
-      unique: true,
+      default: undefined,
     },
 
     authProvider: {
@@ -119,6 +117,15 @@ const userSchema = new mongoose.Schema(
 
   {
     timestamps: true,
+  }
+);
+
+userSchema.index(
+  { googleId: 1 },
+  {
+    name: 'googleId_unique_string',
+    unique: true,
+    partialFilterExpression: { googleId: { $type: 'string' } },
   }
 );
 
