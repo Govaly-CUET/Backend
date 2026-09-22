@@ -1,17 +1,37 @@
-name: Deploy Backend to Render
+name: CI/CD Pipeline
 
 on:
   push:
     branches:
-      - dev   # ba main (je branch push korle Render deploy hobe)
+      - dev
+      - main
 
 jobs:
-  deploy:
+  test-and-deploy:
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # ১. ডিপেন্ডেন্সি ইনস্টল
+      - name: Install Dependencies
+        run: npm ci
+
+      # ২. অটোমেটিক টেস্ট রান করা (CI)
+      - name: Run Automated Tests
+        run: npm test
+        env:
+          MONGO_URI: ${{ secrets.MONGO_URI_TEST }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+
+      # ৩. টেস্ট পাশ করলেই কেবল Render-এ ডিপ্লয় হবে (CD)
       - name: Trigger Render Deploy Hook
+        if: success()
         run: |
           curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
