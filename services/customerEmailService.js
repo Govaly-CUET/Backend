@@ -1,18 +1,6 @@
 // Backend/services/customerEmailService.js
 
-const nodemailer = require("nodemailer");
-
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-  requireTLS: true,
-  family: 4,
-  auth: {
-    user: process.env.SMTP_EMAIL,
-    pass: process.env.SMTP_APP_PASSWORD,
-  },
-});
+const { sendMail } = require("./resendMailer");
 
 /**
  * Send Govaly OTP email
@@ -421,8 +409,7 @@ Bangladesh's Favorite Online Fashion Mall
   // Send Email
   // --------------------------------------------------
   try {
-    const info = await transporter.sendMail({
-      from: `"Govaly" <${process.env.SMTP_EMAIL}>`,
+    const info = await sendMail({
       to: email,
       subject: title,
 
@@ -445,6 +432,5 @@ Bangladesh's Favorite Online Fashion Mall
 };
 
 module.exports = {
-  transporter,
   sendOtpEmail,
 };

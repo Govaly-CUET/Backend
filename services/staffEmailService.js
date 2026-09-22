@@ -1,19 +1,10 @@
-const nodemailer = require('nodemailer');
-
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.SMTP_EMAIL,
-    pass: process.env.SMTP_APP_PASSWORD,
-  },
-});
+const { sendMail } = require('./resendMailer');
 
 const sendStaffOtpEmail = async (email, otp, role, purpose) => {
   const roleName = role === 'admin' ? 'Admin' : 'Seller';
   const subject = `Govaly ${roleName} Password Reset Code`;
 
-  await transporter.sendMail({
-    from: `Govaly ${roleName} <${process.env.SMTP_EMAIL}>`,
+  await sendMail({
     to: email,
     subject,
     text: `Your Govaly ${roleName.toLowerCase()} password reset code is ${otp}. It expires in 30 minutes. Do not share this code.`,
