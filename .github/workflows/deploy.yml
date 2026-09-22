@@ -1,0 +1,25 @@
+name: Deploy Backend to Render
+
+on:
+  push:
+    branches:
+      - main     # বা dev (আপনার যে ব্রাঞ্চ আপনি ডিপ্লয় করেছেন)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      - name: Install Dependencies
+        run: npm install
+
+      - name: Trigger Render Deploy
+        run: |
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
