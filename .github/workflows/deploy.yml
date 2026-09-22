@@ -1,0 +1,17 @@
+name: Deploy Backend to Render
+
+on:
+  push:
+    branches:
+      - dev   # ba main (je branch push korle Render deploy hobe)
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Trigger Render Deploy Hook
+        run: |
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
