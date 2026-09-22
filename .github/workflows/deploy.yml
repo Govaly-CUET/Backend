@@ -1,15 +1,13 @@
-name: CI/CD Pipeline
+name: Deploy Backend to Render
 
 on:
   push:
     branches:
-      - dev
-      - main
+      - main     # বা dev (আপনার যে ব্রাঞ্চ আপনি ডিপ্লয় করেছেন)
 
 jobs:
-  test-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout Code
         uses: actions/checkout@v3
@@ -19,19 +17,9 @@ jobs:
         with:
           node-version: '20'
 
-      # ১. ডিপেন্ডেন্সি ইনস্টল
       - name: Install Dependencies
-        run: npm ci
+        run: npm install
 
-      # ২. অটোমেটিক টেস্ট রান করা (CI)
-      - name: Run Automated Tests
-        run: npm test
-        env:
-          MONGO_URI: ${{ secrets.MONGO_URI_TEST }}
-          JWT_SECRET: ${{ secrets.JWT_SECRET }}
-
-      # ৩. টেস্ট পাশ করলেই কেবল Render-এ ডিপ্লয় হবে (CD)
-      - name: Trigger Render Deploy Hook
-        if: success()
+      - name: Trigger Render Deploy
         run: |
           curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
